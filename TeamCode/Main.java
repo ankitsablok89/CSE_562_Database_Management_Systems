@@ -17,6 +17,12 @@ class Pair{
 		this.columnName = columnName;
 		this.columnType = columnType;
 	}
+	
+	// this constructor is used to create a clone Pair object
+	public Pair(Pair pairToClone){
+		this.columnName = pairToClone.columnName;
+		this.columnType = pairToClone.columnType;
+	}
 }
 
 /* this is the class that we use to form Table objects which consist of various attributes of tables */
@@ -26,6 +32,14 @@ class Table{
 	String tableName;
 	// this is the number of columns in the tables
 	int noOfColumns;
+	// this File object stores the path to the table file
+	File tableFilePath;
+	// this File object stores the directory in which the table is present
+	File tableDataDirectory;
+	// this is the list of columnName and columnType pairs corresponding to the table
+	ArrayList<Pair> columnDescription;
+	// this HashMap stores the mappings from the columnNames to integer indices in the table
+	HashMap<String, Integer> columnIndexMap;
 	
 }
 
@@ -72,6 +86,8 @@ public class Main {
 				}
 			}
 		}
+		
+		
 		
 	}
 }
