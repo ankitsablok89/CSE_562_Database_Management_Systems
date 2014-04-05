@@ -7,14 +7,10 @@ import java.util.ArrayList;
 import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-
-import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.parser.CCJSqlParser;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.parser.ParseException;
-import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectBody;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 
@@ -29,11 +25,9 @@ class Table {
 	File tableFilePath;
 	// this File object stores the directory in which the table is present
 	File tableDataDirectoryPath;
-	// this is the list of columnName and columnType pairs corresponding to the
-	// table
+	// this is the list of columnName and columnType pairs corresponding to the table
 	ArrayList<ColumnDefinition> columnDescriptionList;
-	// this HashMap stores the mappings from the columnNames to integer indices
-	// in the table
+	// this HashMap stores the mappings from the columnNames to integer indices in the table
 	HashMap<String, Integer> columnIndexMap;
 
 	// this is the constructor for the Table class
@@ -77,22 +71,16 @@ class Table {
 /* this is the Main class for the project */
 public class Main {
 	
-	// this File object is the one that points to the data directory, this
-	// directory consists of all the
-	// .dat or the .tbl files in which our data is stored
+	// this File object is the one that points to the data directory, this directory consists of all the .dat or the .tbl files in which our data is stored
 	public static File dataDirectory = null;
 
-	// this File object is the one that points to the swap directory, this
-	// is the directory to which we can
-	// write during the course of our project execution
+	// this File object is the one that points to the swap directory, this is the directory to which we can write during the course of our project execution
 	public static File swapDirectory = null;
 
-	// this is the ArrayList that stores the File objects corresponding to
-	// all the .sql files supplied on input
+	// this is the ArrayList that stores the File objects corresponding to all the .sql files supplied on input
 	public static ArrayList<File> sqlFileList = new ArrayList<File>();
 
-	// this HashMap stores the (table_name, table_file_path) pairs so that
-	// the look up for the tables becomes easy
+	// this HashMap stores the (table_name, table_file_path) pairs so that the look up for the tables becomes easy
 	public static HashMap<String, File> tablesNameAndFileMap = new HashMap<String, File>();
 	
 	@SuppressWarnings({ "unchecked", "unused" })
@@ -113,18 +101,14 @@ public class Main {
 			}
 		}
 
-		// after setting all the variables populate the HashMap with
-		// (table_name, table_file_path) pairs
+		// after setting all the variables populate the HashMap with (table_name, table_file_path) pairs
 		for (File tableFile : dataDirectory.listFiles()) {
 			// this is the actual name of the file
 			String fileName = tableFile.getName().toLowerCase();
 
 			if (fileName.endsWith(".tbl") || fileName.endsWith(".dat")) {
-				if (!tablesNameAndFileMap.containsKey(fileName.substring(0,
-						fileName.lastIndexOf(".")))) {
-					tablesNameAndFileMap.put(
-							fileName.substring(0, fileName.lastIndexOf(".")),
-							tableFile);
+				if (!tablesNameAndFileMap.containsKey(fileName.substring(0,fileName.lastIndexOf(".")))) {
+					tablesNameAndFileMap.put(fileName.substring(0, fileName.lastIndexOf(".")), tableFile);
 				}
 			}
 		}
@@ -150,8 +134,8 @@ public class Main {
 					// make a new Table object corresponding to the CreateTable statement encountered
 					CreateTable ctStmt = (CreateTable) statementObject;
 
-					// this String object stores the name of the table
-					String tableName = ctStmt.getTable().getName();
+					// this String object stores the name of the table, convert the name to LowerCase
+					String tableName = ctStmt.getTable().getName().toLowerCase();
 
 					// this Table is a reference to the table that is present inside the create table statement
 					Table newTableObject = new Table(tableName, ctStmt.getColumnDefinitions().size(),tablesNameAndFileMap.get(tableName), dataDirectory);

@@ -1,3 +1,35 @@
+CREATE TABLE LINEITEM (
+        orderkey       INT,
+        partkey        INT,
+        suppkey        INT,
+        linenumber     INT,
+        quantity       DECIMAL,
+        extendedprice  DECIMAL,
+        discount       DECIMAL,
+        tax            DECIMAL,
+        returnflag     CHAR(1),
+        linestatus     CHAR(1),
+        shipdate       DATE,
+        commitdate     DATE,
+        receiptdate    DATE,
+        shipinstruct   VARCHAR(25),
+        shipmode       VARCHAR(10),
+        comment        VARCHAR(44)
+    );
+
+
+CREATE TABLE ORDERS (
+        orderkey       INT,
+        custkey        INT,
+        orderstatus    CHAR(1),
+        totalprice     DECIMAL,
+        orderdate      DATE,
+        orderpriority  VARCHAR(15),
+        clerk          VARCHAR(15),
+        shippriority   INT,
+        comment        VARCHAR(79)
+    );
+
 select lineitem.shipmode, count(distinct orders.orderkey)
 from orders, lineitem
 where orders.orderkey = lineitem.orderkey

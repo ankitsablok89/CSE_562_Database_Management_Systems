@@ -1,3 +1,46 @@
+CREATE TABLE PART (
+        partkey      INT,
+        name         VARCHAR(55),
+        mfgr         VARCHAR(25),
+        brand        VARCHAR(10),
+        type         VARCHAR(25),
+        size         INT,
+        container    VARCHAR(10),
+        retailprice  DECIMAL,
+        comment      VARCHAR(23)
+    );
+
+CREATE TABLE SUPPLIER (
+        suppkey      INT,
+        name         VARCHAR(25),
+        address      VARCHAR(40),
+        nationkey    INT,
+        phone        VARCHAR(15),
+        acctbal      DECIMAL,
+        comment      VARCHAR(101)
+    );
+
+CREATE TABLE PARTSUPP (
+        partkey      INT,
+        suppkey      INT,
+        availqty     INT,
+        supplycost   DECIMAL,
+        comment      VARCHAR(199)
+    );
+
+CREATE TABLE NATION (
+        nationkey    INT,
+        name         VARCHAR(25),
+        regionkey    INT,
+        comment      VARCHAR(152)
+    );
+
+CREATE TABLE REGION (
+        regionkey    INT,
+        name         VARCHAR(25),
+        comment      VARCHAR(152)
+    );
+
 SELECT
   s1.acctbal, s1.name, n1.name, p1.partkey, p1.mfgr, s1.address, s1.phone, s1.comment
 FROM
