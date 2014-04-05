@@ -29,6 +29,10 @@ class Table {
 	ArrayList<ColumnDefinition> columnDescriptionList;
 	// this HashMap stores the mappings from the columnNames to integer indices in the table
 	HashMap<String, Integer> columnIndexMap;
+	// this is the FileReader object for the table
+	FileReader fr = null;
+	// this is the BufferedReader object for the table
+	BufferedReader br = null;
 
 	// this is the constructor for the Table class
 	public Table(String tableName, int noOfColumns, File tableFilePath,
@@ -65,6 +69,44 @@ class Table {
 		for (ColumnDefinition dummyPair : this.columnDescriptionList) {
 			this.columnIndexMap.put(dummyPair.getColumnName(), indexCounter++);
 		}
+	}
+	
+	// this function is used to allocate the BufferedReader and the FileReader object for the .dat file associated with the table
+	public void allocateBufferedReaderForTableFile() throws FileNotFoundException{
+		this.fr = new FileReader(this.tableFilePath);
+		this.br = new BufferedReader(fr);
+	}
+	
+	// this function is used to return a tuple at a time from the .dat file describing the table
+	public String returnTuple() throws IOException{
+		
+		// if both of these are null then allocate the reader object for the file corresponding to the table
+		if(this.br == null && this.fr == null)
+			this.allocateBufferedReaderForTableFile();
+		
+		// this string is used to read a '|' delimited tuple of the .dat or .tbl file
+		String scanString = null;
+		// read the string using the BufferedReader
+		scanString = br.readLine();
+		// if the scanned string is a null object that means we have reached the end of file and we reallocate the buffered reader object for the table file
+		if(scanString == null){
+			br.close();
+			br = null;
+			fr = null;
+		}
+		
+		return scanString;
+	}
+	
+	// this function is used to tell if a particular attribute is present in the Table's column description list or not
+	public boolean checkColumnNamePresentOrNot(String columnName){
+		
+		for(ColumnDefinition cd : this.columnDescriptionList){
+			if(cd.getColumnName().equals(columnName))
+				return true;
+		}
+		
+		return false;
 	}
 }
 

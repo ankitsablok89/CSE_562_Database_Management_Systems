@@ -38,7 +38,6 @@ public class SelectionOperation {
 		
 		if (((PlainSelect) selectBody).getJoins() != null) {
 			List joinList = ((PlainSelect) selectBody).getJoins();
-			
 			for (Object tableToJoin : joinList)
 				listOfTables.add(tableToJoin.toString().toLowerCase());
 		}
@@ -91,8 +90,7 @@ public class SelectionOperation {
 				
 				// set the new column index map
 				table.columnIndexMap = colIndexMap;
-			}
-			
+			}	
 		}
 		
 	}
