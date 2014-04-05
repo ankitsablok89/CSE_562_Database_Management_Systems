@@ -30,9 +30,9 @@ class Table {
 	// this HashMap stores the mappings from the columnNames to integer indices in the table
 	HashMap<String, Integer> columnIndexMap;
 	// this is the FileReader object for the table
-	FileReader fr = null;
+	FileReader fr;
 	// this is the BufferedReader object for the table
-	BufferedReader br = null;
+	BufferedReader br;
 
 	// this is the constructor for the Table class
 	public Table(String tableName, int noOfColumns, File tableFilePath,
@@ -43,6 +43,8 @@ class Table {
 		this.tableDataDirectoryPath = tableDataDirectoryPath;
 		this.columnDescriptionList = new ArrayList<ColumnDefinition>();
 		this.columnIndexMap = new HashMap<String, Integer>();
+		this.fr = null;
+		this.br = null;
 	}
 
 	// this function is used to make a clone of the table given as input
@@ -53,6 +55,8 @@ class Table {
 		this.tableDataDirectoryPath = tableToClone.tableDataDirectoryPath;
 		this.columnDescriptionList = tableToClone.columnDescriptionList;
 		this.columnIndexMap = tableToClone.columnIndexMap;
+		this.fr = null;
+		this.br = null;
 	}
 
 	// this function is used to read the tuples of the table
@@ -61,6 +65,7 @@ class Table {
 		String bufferString;
 		while ((bufferString = br.readLine()) != null)
 			System.out.println(bufferString);
+		br.close();
 	}
 
 	// this function is used to populate the columnIndexMap for the table

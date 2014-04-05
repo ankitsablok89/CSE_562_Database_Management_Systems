@@ -1,3 +1,22 @@
+CREATE TABLE LINEITEM (
+        orderkey       INT,
+        partkey        INT,
+        suppkey        INT,
+        linenumber     INT,
+        quantity       DECIMAL,
+        extendedprice  DECIMAL,
+        discount       DECIMAL,
+        tax            DECIMAL,
+        returnflag     CHAR(1),
+        linestatus     CHAR(1),
+        shipdate       DATE,
+        commitdate     DATE,
+        receiptdate    DATE,
+        shipinstruct   VARCHAR(25),
+        shipmode       VARCHAR(10),
+        comment        VARCHAR(44)
+    );
+
 select
 sum(extendedprice*discount) as revenue
 from
