@@ -3,8 +3,10 @@ package edu.buffalo.cse562;
 import java.io.File;
 import java.util.HashMap;
 import java.io.FileWriter;
-import java.util.ArrayList;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 
@@ -135,7 +137,7 @@ public class HybridHash {
 			// this variable stores the total number of buckets in which the data of the tables will be divided
 			int nBuckets = 29;
 			
-			// divide the data of table t1 into 29 buckets based on java's hashcode function
+			// divide the data of table t1 into 29 buckets based on java's HashCode function
 			for(int i = 0 ; i < nBuckets ; ++i){
 				File newBucket = new File(swapDirectory + System.getProperty("file.separator") + t1.tableName+ "bucket" + Integer.toString(i) + ".tbl");
 				if(!newBucket.exists())
@@ -154,7 +156,7 @@ public class HybridHash {
 				bwr.close();
 			}
 			
-			// divide the data of table t2 into 29 buckets based on java's hashcode function
+			// divide the data of table t2 into 29 buckets based on java's HashCode function
 			for(int i = 0 ; i < nBuckets ; ++i){
 				File newBucket = new File(swapDirectory + System.getProperty("file.separator") + t2.tableName+ "bucket" + Integer.toString(i) + ".tbl");
 				if(!newBucket.exists())
@@ -171,6 +173,105 @@ public class HybridHash {
 				BufferedWriter bwr = new BufferedWriter(fwr);
 				bwr.write(tuple2 + "\n");
 				bwr.close();
+			}
+			
+			// now evaluate the hash join of the the buckets to form the complete join of the tables
+			// To evaluate the hybrid hash join take a bucket by bucket join and write it to the joinedTable file
+			for(int i = 0 ; i < nBuckets ; ++i){
+				// form the two file pointers
+				File bucketT1 = new File(swapDirectory + System.getProperty("file.separator") + t1.tableName + "bucket" + Integer.toString(i) + ".tbl");
+				File bucketT2 = new File(swapDirectory + System.getProperty("file.separator") + t2.tableName + "bucket" + Integer.toString(i) + ".tbl");
+				
+				// if the size of bucketT2 is less than the size of bucketT1, then we build a HashMap out of bucketT2
+				if(bucketT1.length() > bucketT2.length()){
+					
+					// this HashMap<String, ArrayList<String>> stores the key attribute and the list of strings that contain that key attribute
+					HashMap<String, ArrayList<String> > bucketHashJoin = new HashMap<String, ArrayList<String>>();
+					// allocate a BufferedReader object for the bucketT2 to form the HashMap
+					BufferedReader bucketBR = new BufferedReader(new FileReader(bucketT2));
+					String bucketString;
+					
+					while((bucketString = bucketBR.readLine()) != null){
+						// split the bucket string to get the joining attribute's value
+						String[] bucketStringSplit = bucketString.split("\\|");
+						
+						if(bucketHashJoin.containsKey(bucketStringSplit[joiningAttributeIndexTable2])){
+							bucketHashJoin.get(bucketStringSplit[joiningAttributeIndexTable2]).add(bucketString);
+						}else{
+							// form a new array list which will consist of all the strings that contain the key
+							ArrayList<String> newList = new ArrayList<String>();
+							newList.add(bucketString);
+							bucketHashJoin.put(bucketStringSplit[joiningAttributeIndexTable2], newList);
+						}
+					}
+					
+					bucketBR.close();
+					
+					// now probe the HashMap corresponding to bucketT2 with the tuples from bucketT1
+					BufferedReader brBucketT1 = new BufferedReader(new FileReader(bucketT1));
+					while((bucketString = brBucketT1.readLine()) != null){
+						// split the bucket string to get the joining attribute's value
+						String[] bucketStringSplit = bucketString.split("\\|");
+						
+						if(bucketHashJoin.containsKey(bucketStringSplit[joiningAttributeIndexTable1])){
+							// this is the list of strings with which to join the bucketString
+							ArrayList<String> joinList = bucketHashJoin.get(bucketStringSplit[joiningAttributeIndexTable1]);
+							// this is the BufferedWriter object for writing to the joinedTable file
+							BufferedWriter tempBW = new BufferedWriter(new FileWriter(joinedTable.tableFilePath));
+							
+							for(String joinString : joinList)
+								tempBW.write(bucketString + joinString + "\n");
+							
+							// close the BufferedWriter
+							tempBW.close();
+						}
+					}
+					
+				}else{
+
+					
+					// this HashMap<String, ArrayList<String>> stores the key attribute and the list of strings that contain that key attribute
+					HashMap<String, ArrayList<String> > bucketHashJoin = new HashMap<String, ArrayList<String>>();
+					// allocate a BufferedReader object for the bucketT2 to form the HashMap
+					BufferedReader bucketBR = new BufferedReader(new FileReader(bucketT1));
+					String bucketString;
+					
+					while((bucketString = bucketBR.readLine()) != null){
+						// split the bucket string to get the joining attribute's value
+						String[] bucketStringSplit = bucketString.split("\\|");
+						
+						if(bucketHashJoin.containsKey(bucketStringSplit[joiningAttributeIndexTable1])){
+							bucketHashJoin.get(bucketStringSplit[joiningAttributeIndexTable1]).add(bucketString);
+						}else{
+							// form a new array list which will consist of all the strings that contain the key
+							ArrayList<String> newList = new ArrayList<String>();
+							newList.add(bucketString);
+							bucketHashJoin.put(bucketStringSplit[joiningAttributeIndexTable1], newList);
+						}
+					}
+					
+					bucketBR.close();
+					
+					// now probe the HashMap corresponding to bucketT1 with the tuples from bucketT2
+					BufferedReader brBucketT2 = new BufferedReader(new FileReader(bucketT2));
+					while((bucketString = brBucketT2.readLine()) != null){
+						// split the bucket string to get the joining attribute's value
+						String[] bucketStringSplit = bucketString.split("\\|");
+						
+						if(bucketHashJoin.containsKey(bucketStringSplit[joiningAttributeIndexTable2])){
+							// this is the list of strings with which to join the bucketString
+							ArrayList<String> joinList = bucketHashJoin.get(bucketStringSplit[joiningAttributeIndexTable2]);
+							// this is the BufferedWriter object for writing to the joinedTable file
+							BufferedWriter tempBW = new BufferedWriter(new FileWriter(joinedTable.tableFilePath));
+							
+							for(String joinString : joinList)
+								tempBW.write(joinString + bucketString + "\n");
+							
+							// close the BufferedWriter
+							tempBW.close();
+						}
+					}
+				}
 			}
 		}
 		

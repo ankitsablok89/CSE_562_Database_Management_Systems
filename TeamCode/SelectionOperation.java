@@ -16,17 +16,22 @@ import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 
 public class SelectionOperation {
 	// this function is used for the evaluation of the select statement
+	@SuppressWarnings("rawtypes")
 	public static void selectionEvaluation(Statement statementObject,HashMap<String, Table> tableObjectsMap, File swapDirectory) throws IOException {
 
 		// this is the SelectBody object corresponding to the statement object
 		SelectBody selectBody = ((Select) statementObject).getSelectBody();
 		// extract the list of "ORDER BY" elements from the plain select statement
+		@SuppressWarnings({ "unused", "rawtypes" })
 		List orderbyElementsList = ((PlainSelect) selectBody).getOrderByElements();
 		// extract the list of "GROUP BY" elements from the plain select statement
+		@SuppressWarnings({ "rawtypes", "unused" })
 		List groupbyElementsList = ((PlainSelect) selectBody).getGroupByColumnReferences();
 		// extract the "LIMIT" value in the plain select statement
+		@SuppressWarnings("unused")
 		Limit limit = ((PlainSelect) selectBody).getLimit();
 		// this is the where clause for the select statement
+		@SuppressWarnings("unused")
 		Expression whereExpression = ((PlainSelect) selectBody).getWhere();
 
 		// this is a list of table's that need to be joined
