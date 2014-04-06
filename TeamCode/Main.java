@@ -82,7 +82,7 @@ class Table {
 		this.br = new BufferedReader(fr);
 	}
 	
-	// this function is used to return a tuple at a time from the .dat file describing the table
+	// this function is used to return a tuple at a time from the .dat or .tbl file describing the table
 	public String returnTuple() throws IOException{
 		
 		// if both of these are null then allocate the reader object for the file corresponding to the table
@@ -103,7 +103,7 @@ class Table {
 		return scanString;
 	}
 	
-	// this function is used to tell if a particular attribute is present in the Table's column description list or not
+	// this function is used to tell if a particular attribute or column is present in the Table's column description list or not
 	public boolean checkColumnNamePresentOrNot(String columnName){
 		
 		for(ColumnDefinition cd : this.columnDescriptionList){
@@ -131,8 +131,7 @@ public class Main {
 	public static HashMap<String, File> tablesNameAndFileMap = new HashMap<String, File>();
 	
 	@SuppressWarnings({ "unchecked", "unused" })
-	public static void main(String[] args) throws FileNotFoundException,
-			ParseException {
+	public static void main(String[] args) throws ParseException, IOException {
 
 		// iterate over the args[] array and set the above variables
 		for (int i = 0; i < args.length; ++i) {

@@ -15,14 +15,15 @@ public class HybridHash {
 	public static Table evaluateJoin(Table t1, Table t2, String joiningAttribute, File swapDirectory) throws IOException {
 		
 		// create a file corresponding to the table obtained by joining the tables t1 and t2
-		File joinFile = new File(t1.tableDataDirectoryPath.getAbsolutePath() + System.getProperty("file.separator") + (t1.tableName + "|" + t2.tableName + "|Join.tbl"));
+		File joinFile = new File(t1.tableDataDirectoryPath.getAbsolutePath() + System.getProperty("file.separator") + (t1.tableName + "|" + t2.tableName + ".tbl"));
+		// if the file doesn't exist create the file
 		if(!joinFile.exists())
 			joinFile.createNewFile();
 		
 		// this is the Table object corresponding to the table obtained by joining t1 and t2 on the joining attribute
 		Table joinedTable = new Table(t1.tableName+"|"+t2.tableName,t1.noOfColumns+t2.noOfColumns,joinFile,t1.tableDataDirectoryPath);
 		
-		// form the column description list of the joined table
+		// form the column description list of the joined table by iterating over the column definition lists of t1 and t2
 		ArrayList<ColumnDefinition> joinedTableColumnDefinitionList = new ArrayList<ColumnDefinition>();
 		for(ColumnDefinition cd : t1.columnDescriptionList){
 			ColumnDefinition temp = new ColumnDefinition();
@@ -43,8 +44,8 @@ public class HybridHash {
 		joinedTable.populateColumnIndexMap();
 		
 		// get the indexes of the joining attribute in table1 and table2 to index the tuples in the correct manner
-		int joiningAttributeIndexTable1 = t1.columnIndexMap.get(joiningAttribute);
-		int joiningAttributeIndexTable2 = t2.columnIndexMap.get(joiningAttribute); 
+		int joiningAttributeIndexTable1 = t1.columnIndexMap.get(t1.tableName + "." + joiningAttribute);
+		int joiningAttributeIndexTable2 = t2.columnIndexMap.get(t2.tableName + "." + joiningAttribute); 
 		
 		// if the swap directory is a null value in that case everything needs to be handled in memory
 		if(swapDirectory == null){
@@ -86,7 +87,7 @@ public class HybridHash {
 						ArrayList<String> joiningTuples = hashJoinTable.get(tupleComponents[joiningAttributeIndexTable1]);
 						// perform the join operation
 						for(String joinString : joiningTuples){
-							bwr.write(tupleString + joinString + "\n");
+							bwr.write(tupleString + joinString + "-->\n");
 						}
 						bwr.close();
 					}
@@ -122,13 +123,19 @@ public class HybridHash {
 						ArrayList<String> joiningTuples = hashJoinTable.get(tupleComponents[joiningAttributeIndexTable2]);
 						// perform the join operation
 						for(String joinString : joiningTuples){
-							bwr.write(joinString + tupleString + "\n");
+							bwr.write(joinString + tupleString + "-->\n");
 						}
 						bwr.close();
 					}
 				}
 			}
+		} else{
+			
+			// now because the swap directory is present we use the external hash and hybrid hash scheme to evaluate the joins involved
+			
 		}
-
+		
+		// return the joined table formed
+		return joinedTable;
 	}
 }

@@ -1,6 +1,7 @@
 package edu.buffalo.cse562;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -14,17 +15,15 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 
 public class SelectionOperation {
-	public static void selectionEvaluation(Statement statementObject,
-			HashMap<String, Table> tableObjectsMap, File swapDirectory) {
+	// this function is used for the evaluation of the select statement
+	public static void selectionEvaluation(Statement statementObject,HashMap<String, Table> tableObjectsMap, File swapDirectory) throws IOException {
 
 		// this is the SelectBody object corresponding to the statement object
 		SelectBody selectBody = ((Select) statementObject).getSelectBody();
 		// extract the list of "ORDER BY" elements from the plain select statement
-		List orderbyElementsList = ((PlainSelect) selectBody)
-				.getOrderByElements();
+		List orderbyElementsList = ((PlainSelect) selectBody).getOrderByElements();
 		// extract the list of "GROUP BY" elements from the plain select statement
-		List groupbyElementsList = ((PlainSelect) selectBody)
-				.getGroupByColumnReferences();
+		List groupbyElementsList = ((PlainSelect) selectBody).getGroupByColumnReferences();
 		// extract the "LIMIT" value in the plain select statement
 		Limit limit = ((PlainSelect) selectBody).getLimit();
 		// this is the where clause for the select statement
@@ -93,5 +92,7 @@ public class SelectionOperation {
 			}	
 		}
 		
+		/*LOGIC TO EXTRACT THE JOIN CONDITIONS AND JOIN TABLES*/
+		HybridHash.evaluateJoin(tablesToJoin.get(0), tablesToJoin.get(1),"custkey", null);
 	}
 }
