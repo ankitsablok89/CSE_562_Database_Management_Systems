@@ -93,6 +93,6 @@ public class SelectionOperation {
 		}
 		
 		/*LOGIC TO EXTRACT THE JOIN CONDITIONS AND JOIN TABLES*/
-		HybridHash.evaluateJoin(tablesToJoin.get(0), tablesToJoin.get(1),"custkey", null);
+		HybridHash.evaluateJoin(tablesToJoin.get(0), tablesToJoin.get(1),"custkey", swapDirectory);
 	}
 }

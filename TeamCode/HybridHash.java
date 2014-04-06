@@ -1,11 +1,11 @@
 package edu.buffalo.cse562;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.util.HashMap;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.io.IOException;
+import java.io.BufferedWriter;
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 
 public class HybridHash {
@@ -87,7 +87,7 @@ public class HybridHash {
 						ArrayList<String> joiningTuples = hashJoinTable.get(tupleComponents[joiningAttributeIndexTable1]);
 						// perform the join operation
 						for(String joinString : joiningTuples){
-							bwr.write(tupleString + joinString + "-->\n");
+							bwr.write(tupleString + joinString + "\n");
 						}
 						bwr.close();
 					}
@@ -123,16 +123,55 @@ public class HybridHash {
 						ArrayList<String> joiningTuples = hashJoinTable.get(tupleComponents[joiningAttributeIndexTable2]);
 						// perform the join operation
 						for(String joinString : joiningTuples){
-							bwr.write(joinString + tupleString + "-->\n");
+							bwr.write(joinString + tupleString + "\n");
 						}
 						bwr.close();
 					}
 				}
 			}
 		} else{
+			// as the swap parameter is present we divide the data of two tables in buckets which will be placed in the swap directory
 			
-			// now because the swap directory is present we use the external hash and hybrid hash scheme to evaluate the joins involved
+			// this variable stores the total number of buckets in which the data of the tables will be divided
+			int nBuckets = 29;
 			
+			// divide the data of table t1 into 29 buckets based on java's hashcode function
+			for(int i = 0 ; i < nBuckets ; ++i){
+				File newBucket = new File(swapDirectory + System.getProperty("file.separator") + t1.tableName+ "bucket" + Integer.toString(i) + ".tbl");
+				if(!newBucket.exists())
+					newBucket.createNewFile();
+			}
+			
+			String tuple1;
+			while((tuple1 = t1.returnTuple()) != null){
+				String[] splitTuple = tuple1.split("\\|");
+				// this is the bucket number to which we need to place the tuple
+				int bucketNumber = (splitTuple[joiningAttributeIndexTable1].hashCode())%nBuckets;
+				File bucketPointer = new File(swapDirectory + System.getProperty("file.separator") + t1.tableName+ "bucket" + Integer.toString(bucketNumber) + ".tbl");
+				FileWriter fwr = new FileWriter(bucketPointer, true);
+				BufferedWriter bwr = new BufferedWriter(fwr);
+				bwr.write(tuple1 + "\n");
+				bwr.close();
+			}
+			
+			// divide the data of table t2 into 29 buckets based on java's hashcode function
+			for(int i = 0 ; i < nBuckets ; ++i){
+				File newBucket = new File(swapDirectory + System.getProperty("file.separator") + t2.tableName+ "bucket" + Integer.toString(i) + ".tbl");
+				if(!newBucket.exists())
+					newBucket.createNewFile();
+			}
+			
+			String tuple2;
+			while((tuple2 = t2.returnTuple()) != null){
+				String[] splitTuple = tuple2.split("\\|");
+				// this is the bucket number to which we need to place the tuple
+				int bucketNumber = (splitTuple[joiningAttributeIndexTable1].hashCode())%nBuckets;
+				File bucketPointer = new File(swapDirectory + System.getProperty("file.separator") + t2.tableName+ "bucket" + Integer.toString(bucketNumber) + ".tbl");
+				FileWriter fwr = new FileWriter(bucketPointer, true);
+				BufferedWriter bwr = new BufferedWriter(fwr);
+				bwr.write(tuple2 + "\n");
+				bwr.close();
+			}
 		}
 		
 		// return the joined table formed
