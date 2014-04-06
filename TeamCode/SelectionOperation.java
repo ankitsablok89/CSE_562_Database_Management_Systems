@@ -62,14 +62,14 @@ public class SelectionOperation {
 				// change the name of the table
 				newTable.tableName = tableAliasFilterArray[2].toLowerCase();
 				// put the Table object in the map
-				tableObjectsMap.put(tableAliasFilterArray[2].toLowerCase(), newTable);
+				tableObjectsMap.put(newTable.tableName, newTable);
 				tablesToJoin.add(newTable);
 			}
 			else
 				tablesToJoin.add(tableObjectsMap.get(tableAliasFilterArray[0]));
 		}
 		
-		// now we scan the final list of tables to be joined and change their column description list and columnindex maps
+		// now we scan the final list of tables to be joined and change their column description list and column index maps
 		if(tablesToJoin.size() > 1){
 			// iterate over the table objects and change their columnDescriptions and columnIndexMap
 			for(Table table : tablesToJoin){

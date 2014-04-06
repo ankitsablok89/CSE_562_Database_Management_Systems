@@ -35,8 +35,7 @@ class Table {
 	BufferedReader br;
 
 	// this is the constructor for the Table class
-	public Table(String tableName, int noOfColumns, File tableFilePath,
-			File tableDataDirectoryPath) {
+	public Table(String tableName, int noOfColumns, File tableFilePath, File tableDataDirectoryPath) {
 		this.tableName = tableName;
 		this.noOfColumns = noOfColumns;
 		this.tableFilePath = tableFilePath;
@@ -61,7 +60,7 @@ class Table {
 
 	// this function is used to read the tuples of the table
 	public void readTable() throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader(tableFilePath));
+		BufferedReader br = new BufferedReader(new FileReader(this.tableFilePath));
 		String bufferString;
 		while ((bufferString = br.readLine()) != null)
 			System.out.println(bufferString);
@@ -71,12 +70,12 @@ class Table {
 	// this function is used to populate the columnIndexMap for the table
 	public void populateColumnIndexMap() {
 		int indexCounter = 0;
-		for (ColumnDefinition dummyPair : this.columnDescriptionList) {
-			this.columnIndexMap.put(dummyPair.getColumnName(), indexCounter++);
+		for (ColumnDefinition cdPair : this.columnDescriptionList) {
+			this.columnIndexMap.put(cdPair.getColumnName(), indexCounter++);
 		}
 	}
 	
-	// this function is used to allocate the BufferedReader and the FileReader object for the .dat file associated with the table
+	// this function is used to allocate the BufferedReader and the FileReader object for the .dat or .tbl file associated with the table
 	public void allocateBufferedReaderForTableFile() throws FileNotFoundException{
 		this.fr = new FileReader(this.tableFilePath);
 		this.br = new BufferedReader(fr);
@@ -169,7 +168,7 @@ public class Main {
 			// this HashMap stores the (table_name, table_TableObject) pairs, which is used to get the referenced Table object directly given a table's name
 			HashMap<String, Table> tableObjectsMap = new HashMap<String, Table>();
 
-			// this is the statement object returned by the CCJSqlParser when scanning the sql file
+			// this is the statement object returned by the CCJSqlParser when scanning the .sql file
 			Statement statementObject;
 
 			while ((statementObject = parserObject.Statement()) != null) {

@@ -167,7 +167,7 @@ public class HybridHash {
 			while((tuple2 = t2.returnTuple()) != null){
 				String[] splitTuple = tuple2.split("\\|");
 				// this is the bucket number to which we need to place the tuple
-				int bucketNumber = (splitTuple[joiningAttributeIndexTable1].hashCode())%nBuckets;
+				int bucketNumber = (splitTuple[joiningAttributeIndexTable2].hashCode())%nBuckets;
 				File bucketPointer = new File(swapDirectory + System.getProperty("file.separator") + t2.tableName+ "bucket" + Integer.toString(bucketNumber) + ".tbl");
 				FileWriter fwr = new FileWriter(bucketPointer, true);
 				BufferedWriter bwr = new BufferedWriter(fwr);
@@ -217,7 +217,7 @@ public class HybridHash {
 							// this is the list of strings with which to join the bucketString
 							ArrayList<String> joinList = bucketHashJoin.get(bucketStringSplit[joiningAttributeIndexTable1]);
 							// this is the BufferedWriter object for writing to the joinedTable file
-							BufferedWriter tempBW = new BufferedWriter(new FileWriter(joinedTable.tableFilePath));
+							BufferedWriter tempBW = new BufferedWriter(new FileWriter(joinedTable.tableFilePath, true));
 							
 							for(String joinString : joinList)
 								tempBW.write(bucketString + joinString + "\n");
@@ -232,7 +232,7 @@ public class HybridHash {
 					
 					// this HashMap<String, ArrayList<String>> stores the key attribute and the list of strings that contain that key attribute
 					HashMap<String, ArrayList<String> > bucketHashJoin = new HashMap<String, ArrayList<String>>();
-					// allocate a BufferedReader object for the bucketT2 to form the HashMap
+					// allocate a BufferedReader object for the bucketT1 to form the HashMap
 					BufferedReader bucketBR = new BufferedReader(new FileReader(bucketT1));
 					String bucketString;
 					
@@ -262,7 +262,7 @@ public class HybridHash {
 							// this is the list of strings with which to join the bucketString
 							ArrayList<String> joinList = bucketHashJoin.get(bucketStringSplit[joiningAttributeIndexTable2]);
 							// this is the BufferedWriter object for writing to the joinedTable file
-							BufferedWriter tempBW = new BufferedWriter(new FileWriter(joinedTable.tableFilePath));
+							BufferedWriter tempBW = new BufferedWriter(new FileWriter(joinedTable.tableFilePath, true));
 							
 							for(String joinString : joinList)
 								tempBW.write(joinString + bucketString + "\n");
