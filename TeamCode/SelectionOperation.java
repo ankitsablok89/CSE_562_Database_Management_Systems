@@ -98,6 +98,10 @@ public class SelectionOperation {
 		}
 		
 		/*LOGIC TO EXTRACT THE JOIN CONDITIONS AND JOIN TABLES*/
-		HybridHash.evaluateJoin(tablesToJoin.get(0), tablesToJoin.get(1),"custkey", swapDirectory);
+		//HybridHash.evaluateJoin(tablesToJoin.get(0), tablesToJoin.get(1),"custkey", swapDirectory);
+		//System.out.println("Table 1 : " + tablesToJoin.get(1).tableName + "\n" + "Table 2 : " + tablesToJoin.get(2).tableName + "\nWhereExpression : " + whereExpression);
+		for(String s : WhereOperation.extractJoinCond(tablesToJoin.get(0).toString(), tablesToJoin.get(3).toString(), whereExpression)){
+			System.out.println(s);
+		}
 	}
 }
