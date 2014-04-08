@@ -97,11 +97,46 @@ public class SelectionOperation {
 			}	
 		}
 		
-		/*LOGIC TO EXTRACT THE JOIN CONDITIONS AND JOIN TABLES*/
-		//HybridHash.evaluateJoin(tablesToJoin.get(0), tablesToJoin.get(1),"custkey", swapDirectory);
-		//System.out.println("Table 1 : " + tablesToJoin.get(1).tableName + "\n" + "Table 2 : " + tablesToJoin.get(2).tableName + "\nWhereExpression : " + whereExpression);
-		for(String s : WhereOperation.extractJoinCond(tablesToJoin.get(0).toString(), tablesToJoin.get(3).toString(), whereExpression)){
-			System.out.println(s);
+		// the following is the logic to find the join of all the tables iteratively
+		HashMap<Integer, Table> mapOfTables = new HashMap<Integer, Table>();
+		
+		int i = 0;
+		for(Table table : tablesToJoin){
+			mapOfTables.put(i,table);
+			++i;
+		}
+		
+		Table t1 = null;
+		Table t2 = null;
+		int countOfJoins = 0;
+		int index= mapOfTables.size()-1;
+		if(index>0){
+				while(countOfJoins != index){
+					
+					for(int iterativeIndex = index-1; iterativeIndex >= 0; iterativeIndex--){
+					
+						t1 = mapOfTables.get(index);
+						t2 = mapOfTables.get(iterativeIndex);
+						if(t2 == null){
+							continue;
+						}
+						
+						ArrayList<String> arrayList = WhereOperation.evaluateJoinCondition(t1,t2,whereExpression); 
+						
+						for(String s : arrayList)
+							System.out.println(s);
+						
+						System.out.println("-->");
+						
+						if(arrayList.size()>0 && mapOfTables.get(iterativeIndex)!=null){
+							// calling Hash Join
+							Table newTable = HybridHash.evaluateJoin(t1, t2, arrayList.get(0), arrayList.get(1), arrayList.get(2), swapDirectory);
+							mapOfTables.put(iterativeIndex,null);
+							mapOfTables.put(index,newTable);
+							countOfJoins++;
+						}
+				}
+			}
 		}
 	}
 }

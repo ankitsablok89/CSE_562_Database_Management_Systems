@@ -971,7 +971,7 @@ public class WhereOperation {
 		}
 	}
 
-	public static ArrayList<String> extractJoinCond(String table1, String table2, Expression expression) {
+	public static String extractJoinCond(String table1, String table2, Expression expression) {
 		
 		ArrayList<String> arrayList = new ArrayList<String>();
 		HashSet<String> set = extractCond(expression);
@@ -990,12 +990,12 @@ public class WhereOperation {
 							(strArr[1].split("\\.")[0].equalsIgnoreCase(table1) || strArr[1].split("\\.")[0].equalsIgnoreCase(table2)))
 					{
 						
-						arrayList.add(strArr[0].split("\\.")[1]);
+						return strArr[0].split("\\.")[1];
 					}
 				}
 			}
 		}
-		return arrayList;
+		return null;
 	}
 
 	public static HashSet<String> extractCond(Expression expression) {
@@ -1048,6 +1048,66 @@ public class WhereOperation {
 		else {
 			System.out.println("in equal");
 		}
+		return arrayList;
+	}
+	
+	public static ArrayList<String> evaluateJoinCondition (Table table1,Table table2,Expression expression)
+	{
+		ArrayList<String> arrayList = new ArrayList<String>();
+
+		HashSet<String> set = extractCond(expression);
+		for(String s: set)
+		{
+			String[] strArr=null;
+			if(s.contains("="))
+			{
+				strArr=s.split("=");
+				for (int i = 0; i < strArr.length; i++) {
+					strArr[i] = strArr[i].trim();
+				}
+				if(!table1.tableName.contains("|"))
+				{
+
+					if ((strArr[0].split("\\.")[0].equalsIgnoreCase(table1.tableName) || strArr[0].split("\\.")[0].equalsIgnoreCase(table2.tableName)) &&
+							(strArr[1].split("\\.")[0].equalsIgnoreCase(table1.tableName) || strArr[1].split("\\.")[0].equalsIgnoreCase(table2.tableName))){
+
+						String FirsttableName=table1.tableName;
+						String secondtableName=table2.tableName;
+						String attr=strArr[0].substring(strArr[0].indexOf(".")+1,strArr[0].length());
+						arrayList.add(FirsttableName);
+						arrayList.add(secondtableName);
+						arrayList.add(attr);
+						return arrayList;
+
+					}
+
+
+				}
+				else
+				{
+					String[] newTableName=table1.tableName.trim().split("\\|");
+					for(int i=0;i<newTableName.length;i++)
+					{
+						if((strArr[0].split("\\.")[0].equalsIgnoreCase(newTableName[i])&&strArr[1].split("\\.")[0].equalsIgnoreCase(table2.tableName))||
+								(strArr[1].split("\\.")[0].equalsIgnoreCase(newTableName[i])&&strArr[0].split("\\.")[0].equalsIgnoreCase(table2.tableName)))
+						{
+							String FirsttableName=newTableName[i];
+							String secondtableName=table2.tableName;
+							String attr=strArr[0].substring(strArr[0].indexOf(".")+1,strArr[0].length());
+							arrayList.add(FirsttableName);
+							arrayList.add(secondtableName);
+							arrayList.add(attr);
+							return arrayList;
+
+						}
+
+					}
+				}
+			}
+
+
+		}
+
 		return arrayList;
 	}
 }

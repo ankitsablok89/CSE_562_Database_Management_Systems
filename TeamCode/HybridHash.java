@@ -14,7 +14,7 @@ public class HybridHash {
 
 	// this function is used to evaluate the hash join of the tables based on
 	// the joining attribute, the return type of the function is the joined table's corresponding Table object
-	public static Table evaluateJoin(Table t1, Table t2, String joiningAttribute, File swapDirectory) throws IOException {
+	public static Table evaluateJoin(Table t1, Table t2, String t1Name, String t2Name, String joiningAttribute, File swapDirectory) throws IOException {
 		
 		// create a file corresponding to the table obtained by joining the tables t1 and t2
 		File joinFile = new File(t1.tableDataDirectoryPath.getAbsolutePath() + System.getProperty("file.separator") + (t1.tableName + "|" + t2.tableName + ".tbl"));
@@ -46,8 +46,8 @@ public class HybridHash {
 		joinedTable.populateColumnIndexMap();
 		
 		// get the indexes of the joining attribute in table1 and table2 to index the tuples in the correct manner
-		int joiningAttributeIndexTable1 = t1.columnIndexMap.get(t1.tableName + "." + joiningAttribute);
-		int joiningAttributeIndexTable2 = t2.columnIndexMap.get(t2.tableName + "." + joiningAttribute); 
+		int joiningAttributeIndexTable1 = t1.columnIndexMap.get(t1Name + "." + joiningAttribute);
+		int joiningAttributeIndexTable2 = t2.columnIndexMap.get(t2Name + "." + joiningAttribute); 
 		
 		// if the swap directory is a null value in that case everything needs to be handled in memory
 		if(swapDirectory == null){
@@ -135,11 +135,14 @@ public class HybridHash {
 			// as the swap parameter is present we divide the data of two tables in buckets which will be placed in the swap directory
 			
 			// this variable stores the total number of buckets in which the data of the tables will be divided
-			int nBuckets = 29;
+			int nBuckets = 103;
 			
-			// divide the data of table t1 into 29 buckets based on java's HashCode function
+			// divide the data of table t1 into 31 buckets based on java's HashCode function
+			// this is the ArrayList of file objects corresponding to table1's buckets
+			ArrayList<File> table1BucketsFileObjects = new ArrayList<File>();
 			for(int i = 0 ; i < nBuckets ; ++i){
-				File newBucket = new File(swapDirectory + System.getProperty("file.separator") + t1.tableName+ "bucket" + Integer.toString(i) + ".tbl");
+				File newBucket = new File(swapDirectory + System.getProperty("file.separator") + t1.tableName + "bucket" + Integer.toString(i) + ".tbl");
+				table1BucketsFileObjects.add(newBucket);
 				if(!newBucket.exists())
 					newBucket.createNewFile();
 			}
@@ -148,17 +151,25 @@ public class HybridHash {
 			while((tuple1 = t1.returnTuple()) != null){
 				String[] splitTuple = tuple1.split("\\|");
 				// this is the bucket number to which we need to place the tuple
-				int bucketNumber = (splitTuple[joiningAttributeIndexTable1].hashCode())%nBuckets;
-				File bucketPointer = new File(swapDirectory + System.getProperty("file.separator") + t1.tableName+ "bucket" + Integer.toString(bucketNumber) + ".tbl");
+				int tupleHashCode = splitTuple[joiningAttributeIndexTable1].hashCode();
+				// if the hash code is negative then multiply it by -1
+				if(tupleHashCode < 0)
+					tupleHashCode = tupleHashCode*-1;
+				// this is the bucket number to which we need to place the tuple
+				int bucketNumber = (tupleHashCode)%nBuckets;
+				File bucketPointer = table1BucketsFileObjects.get(bucketNumber);
 				FileWriter fwr = new FileWriter(bucketPointer, true);
 				BufferedWriter bwr = new BufferedWriter(fwr);
 				bwr.write(tuple1 + "\n");
 				bwr.close();
 			}
 			
-			// divide the data of table t2 into 29 buckets based on java's HashCode function
+			// divide the data of table t2 into 31 buckets based on java's HashCode function
+			// this is the ArrayList of file objects corresponding to table2's buckets
+			ArrayList<File> table2BucketsFileObjects = new ArrayList<File>();
 			for(int i = 0 ; i < nBuckets ; ++i){
 				File newBucket = new File(swapDirectory + System.getProperty("file.separator") + t2.tableName+ "bucket" + Integer.toString(i) + ".tbl");
+				table2BucketsFileObjects.add(newBucket);
 				if(!newBucket.exists())
 					newBucket.createNewFile();
 			}
@@ -167,8 +178,12 @@ public class HybridHash {
 			while((tuple2 = t2.returnTuple()) != null){
 				String[] splitTuple = tuple2.split("\\|");
 				// this is the bucket number to which we need to place the tuple
-				int bucketNumber = (splitTuple[joiningAttributeIndexTable2].hashCode())%nBuckets;
-				File bucketPointer = new File(swapDirectory + System.getProperty("file.separator") + t2.tableName+ "bucket" + Integer.toString(bucketNumber) + ".tbl");
+				int tupleHashCode = splitTuple[joiningAttributeIndexTable2].hashCode();
+				// if the tuple hashcode is negative then multiply it by -1
+				if(tupleHashCode < 0)
+					tupleHashCode = -1*tupleHashCode;
+				int bucketNumber = (tupleHashCode)%nBuckets;
+				File bucketPointer = table2BucketsFileObjects.get(bucketNumber);
 				FileWriter fwr = new FileWriter(bucketPointer, true);
 				BufferedWriter bwr = new BufferedWriter(fwr);
 				bwr.write(tuple2 + "\n");
@@ -179,8 +194,8 @@ public class HybridHash {
 			// To evaluate the hybrid hash join take a bucket by bucket join and write it to the joinedTable file
 			for(int i = 0 ; i < nBuckets ; ++i){
 				// form the two file pointers
-				File bucketT1 = new File(swapDirectory + System.getProperty("file.separator") + t1.tableName + "bucket" + Integer.toString(i) + ".tbl");
-				File bucketT2 = new File(swapDirectory + System.getProperty("file.separator") + t2.tableName + "bucket" + Integer.toString(i) + ".tbl");
+				File bucketT1 = table1BucketsFileObjects.get(i);
+				File bucketT2 = table2BucketsFileObjects.get(i);
 				
 				// if the size of bucketT2 is less than the size of bucketT1, then we build a HashMap out of bucketT2
 				if(bucketT1.length() > bucketT2.length()){
@@ -273,6 +288,12 @@ public class HybridHash {
 					}
 				}
 			}
+			
+			// delete all the bucket objects that were formed previously, this is done to reduce the clutter
+			for(File bucketObject : table1BucketsFileObjects)
+				bucketObject.delete();
+			for(File bucketObject : table2BucketsFileObjects)
+				bucketObject.delete();
 		}
 		
 		// return the joined table formed
