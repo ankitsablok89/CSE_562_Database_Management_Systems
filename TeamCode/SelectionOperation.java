@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Map.Entry;
+
+import net.sf.jsqlparser.parser.ParseException;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.statement.select.Limit;
@@ -17,7 +19,7 @@ import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 public class SelectionOperation {
 	// this function is used for the evaluation of the select statement
 	@SuppressWarnings("rawtypes")
-	public static void selectionEvaluation(Statement statementObject,HashMap<String, Table> tableObjectsMap, File swapDirectory) throws IOException {
+	public static void selectionEvaluation(Statement statementObject,HashMap<String, Table> tableObjectsMap, File swapDirectory) throws IOException, ParseException {
 
 		// this is the SelectBody object corresponding to the statement object
 		SelectBody selectBody = ((Select) statementObject).getSelectBody();
@@ -97,7 +99,18 @@ public class SelectionOperation {
 			}	
 		}
 		
-		// the following is the logic to find the join of all the tables iteratively
+		for(Expression s : WhereOperation.extractNonJoinExp(whereExpression)){
+			//System.out.println(s.toString());
+			for(Table t : tablesToJoin){
+				if(s.toString().contains(t.tableName)){
+					System.out.println("Table : " + t.tableName);
+					System.out.println("Expression : " + s.toString());
+					WhereOperation.selectionOnTable(s, t);
+				}
+			}
+		}
+		
+	/*	// the following is the logic to find the join of all the tables iteratively
 		HashMap<Integer, Table> mapOfTables = new HashMap<Integer, Table>();
 		
 		int i = 0;
@@ -137,6 +150,6 @@ public class SelectionOperation {
 						}
 				}
 			}
-		}
+		}*/
 	}
 }

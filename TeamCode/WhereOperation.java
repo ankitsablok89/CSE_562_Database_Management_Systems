@@ -1,29 +1,29 @@
 package edu.buffalo.cse562;
 
-import java.util.Stack;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.TreeSet;
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.io.BufferedWriter;
-import net.sf.jsqlparser.parser.CCJSqlParser;
-import net.sf.jsqlparser.parser.ParseException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Stack;
+import java.util.TreeSet;
+
+import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.Parenthesis;
-import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.operators.arithmetic.Addition;
 import net.sf.jsqlparser.expression.operators.arithmetic.Division;
+import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
 import net.sf.jsqlparser.expression.operators.arithmetic.Subtraction;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.relational.Between;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
-import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
-import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
-import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
 import net.sf.jsqlparser.expression.operators.relational.IsNullExpression;
@@ -31,6 +31,8 @@ import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
+import net.sf.jsqlparser.parser.CCJSqlParser;
+import net.sf.jsqlparser.parser.ParseException;
 
 // This class is used for performing the selection operation on a given table
 public class WhereOperation {
@@ -39,9 +41,13 @@ public class WhereOperation {
 	public static Table selectionOnTable(Expression expression, Table tableToApplySelectionOn) throws IOException, ParseException {
 
 		// this Table contains the resultant table, obtained after applying selection operation
+		File resultantTableFile = new File(tableToApplySelectionOn.tableDataDirectoryPath+System.getProperty("file.separator") + tableToApplySelectionOn.tableName + "WhereResultTable.tbl");
+		if(!resultantTableFile.exists())
+			resultantTableFile.createNewFile();
+		
 		Table resultantTable = new Table(tableToApplySelectionOn.tableName + "WhereResultTable", 
 										 tableToApplySelectionOn.noOfColumns,
-										 tableToApplySelectionOn.tableFilePath,
+										 resultantTableFile,
 										 tableToApplySelectionOn.tableDataDirectoryPath);
 
 		// initialize the column description list of the resultant table, which would be the same as the table given as input
@@ -955,7 +961,7 @@ public class WhereOperation {
 			throws IOException {
 
 		// now write to the .dat file describing the Where clause
-		FileWriter fwr = new FileWriter(resultantTable.tableFilePath);
+		FileWriter fwr = new FileWriter(resultantTable.tableFilePath, true);
 		BufferedWriter bwr = new BufferedWriter(fwr);
 
 		String tuple;
@@ -969,6 +975,8 @@ public class WhereOperation {
 				bwr.flush();
 			}
 		}
+		
+		bwr.close();
 	}
 
 	public static String extractJoinCond(String table1, String table2, Expression expression) {
@@ -998,10 +1006,112 @@ public class WhereOperation {
 		return null;
 	}
 
-	public static HashSet<String> extractCond(Expression expression) {
-
-		HashSet<String> arrayList = new HashSet<String>();
+	public static HashSet<Expression> extractNonJoinExp(Expression expression){
+		HashSet<Expression> allExp = extractAllExp(expression);
+		HashSet<Expression> nonJoinExp = new HashSet<Expression>();
+		HashSet<String> tablesToJoin = new HashSet<String>();
+		tablesToJoin.add("customer");
+		tablesToJoin.add("nation");
+		tablesToJoin.add("orders");
+		tablesToJoin.add("lineitem");
+		tablesToJoin.add("region");
+		tablesToJoin.add("partsupp");
+		tablesToJoin.add("part");
+		
+		for(Expression exp:allExp){
+			if (!(exp instanceof EqualsTo)){
+				nonJoinExp.add(exp);
+			}
+			else{
+				String leftVal = ((EqualsTo)exp).getLeftExpression().toString();
+				String rightVal = ((EqualsTo)exp).getRightExpression().toString();
+				String leftTable = null;
+				String rightTable = null;
+				if(leftVal.contains(".")){
+					leftTable = leftVal.split("\\.")[0];
+				}
+				if(rightVal.contains(".")){
+					rightTable = rightVal.split("\\.")[0];
+				}
+				
+				if(!(tablesToJoin.contains(leftTable) && tablesToJoin.contains(rightTable))){
+					nonJoinExp.add(exp);
+				}
+			}
+		}
+		
+		return nonJoinExp;
+	}
+	
+	
+	
+	
+	
+	public static HashSet<Expression> extractAllExp(Expression expression){
+		HashSet<Expression> hashSet = new HashSet<Expression>();
+		
 		Expression leftVal = null;
+		Expression rightVal = null;
+
+		if (expression instanceof AndExpression) {
+			AndExpression mte = (AndExpression) expression;
+			leftVal = ((Expression) mte.getLeftExpression());
+			rightVal = ((Expression) mte.getRightExpression());
+
+			if (leftVal instanceof AndExpression || leftVal instanceof OrExpression) {
+				HashSet<Expression> array = extractAllExp(leftVal);
+				for (Expression s : array) {
+					hashSet.add(s);
+				}
+				hashSet.add(rightVal);
+			} else {
+				
+				//if (leftVal instanceof EqualsTo) {
+				hashSet.add(leftVal);
+				//}
+				//if (rightVal instanceof EqualsTo) {
+				hashSet.add(rightVal);
+				//}
+			}
+
+		} else if (expression instanceof OrExpression) {
+			OrExpression mte = (OrExpression) expression;
+			leftVal = ((Expression) mte.getLeftExpression());
+			rightVal = ((Expression) mte.getRightExpression());;
+
+			if (leftVal instanceof AndExpression || leftVal instanceof OrExpression) {
+				HashSet<Expression> array = extractAllExp(leftVal);
+				for (Expression s : array) {
+					hashSet.add(s);
+				}
+				hashSet.add(rightVal);
+			} else {
+				//if (leftVal instanceof EqualsTo) {
+				hashSet.add(leftVal);
+				//}
+				//if (rightVal instanceof EqualsTo) {
+				hashSet.add(rightVal);
+				//}
+			}
+
+		}
+		else {
+			hashSet.add(expression);
+		}
+		return hashSet;
+	}
+	
+	
+	
+	
+	public static HashSet<String> extractCond(Expression expression) {
+//		System.out.println(expression.toString()+"\n\n");
+		HashSet<String> hashSet = new HashSet<String>();
+		HashSet<Expression> hashExpSet = extractAllExp(expression);
+		for(Expression exp:hashExpSet){
+			hashSet.add(exp.toString());
+		}
+		/*Expression leftVal = null;
 		Expression rightVal = null;
 
 		if (expression instanceof AndExpression) {
@@ -1016,12 +1126,13 @@ public class WhereOperation {
 				}
 				arrayList.add(rightVal.toString());
 			} else {
-				if (leftVal instanceof EqualsTo) {
+				
+				//if (leftVal instanceof EqualsTo) {
 					arrayList.add(leftVal.toString());
-				}
-				if (rightVal instanceof EqualsTo) {
+				//}
+				//if (rightVal instanceof EqualsTo) {
 					arrayList.add(rightVal.toString());
-				}
+				//}
 			}
 
 		} else if (expression instanceof OrExpression) {
@@ -1036,19 +1147,22 @@ public class WhereOperation {
 				}
 				arrayList.add(rightVal.toString());
 			} else {
-				if (leftVal instanceof EqualsTo) {
+				//if (leftVal instanceof EqualsTo) {
 					arrayList.add(leftVal.toString());
-				}
-				if (rightVal instanceof EqualsTo) {
+				//}
+				//if (rightVal instanceof EqualsTo) {
 					arrayList.add(rightVal.toString());
-				}
+				//}
 			}
 
 		}
 		else {
-			System.out.println("in equal");
-		}
-		return arrayList;
+			arrayList.add(expression.toString());
+		}*/
+		
+		
+		
+		return hashSet;
 	}
 	
 	public static ArrayList<String> evaluateJoinCondition (Table table1,Table table2,Expression expression)
