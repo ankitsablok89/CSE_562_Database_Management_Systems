@@ -10,7 +10,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Stack;
 import java.util.TreeSet;
-
+import net.sf.jsqlparser.parser.CCJSqlParser;
+import net.sf.jsqlparser.parser.ParseException;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.NullValue;
@@ -31,8 +32,6 @@ import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
-import net.sf.jsqlparser.parser.CCJSqlParser;
-import net.sf.jsqlparser.parser.ParseException;
 
 // This class is used for performing the selection operation on a given table
 public class WhereOperation {
@@ -40,6 +39,8 @@ public class WhereOperation {
 	// this method will apply selection operations on the table given as input to the function
 	public static Table selectionOnTable(Expression expression, Table tableToApplySelectionOn) throws IOException, ParseException {
 
+		//System.out.println(tableToApplySelectionOn.columnIndexMap);
+		
 		// this Table contains the resultant table, obtained after applying selection operation
 		File resultantTableFile = new File(tableToApplySelectionOn.tableDataDirectoryPath+System.getProperty("file.separator") + tableToApplySelectionOn.tableName + "WhereResultTable.tbl");
 		if(!resultantTableFile.exists())
@@ -81,6 +82,10 @@ public class WhereOperation {
 			ArrayList<Integer> rightArr = expressionEvaluator(rightExpression, tableToApplySelectionOn);
 			// indices of the tuples  that match the where clause or satisfy the where clause 
 			ArrayList<Integer> listOfIndices = new ArrayList<Integer>();
+			//System.out.println(leftExpression);
+			//System.out.println(leftArr);
+			//System.out.println(rightExpression);
+			//System.out.println(rightArr);
 			
 			// the following nested loop is used to find the intersection of the two list indices
 			for (int i : leftArr) {
@@ -134,6 +139,7 @@ public class WhereOperation {
 
 	// this method is used to evaluate expression recursively, it does logical, arithmetic and relational operations, and returns a list of indices that satisfy all the conditions
 	private static ArrayList<Integer> expressionEvaluator(Expression expression, Table tableToApplySelectionOn) throws IOException, ParseException {
+		
 		
 		// this is the actual list of indices that stores the indices of the tuples that satisfy all the conditions
 		ArrayList<Integer> listOfIndices = new ArrayList<Integer>();
@@ -196,7 +202,16 @@ public class WhereOperation {
 
 					} else if (type.equalsIgnoreCase("date")) {
 						String leftDate[] = array[index].split("-");
-						String rightDate[] = rightArray[rightIndex].substring(6, rightArray[rightIndex].length() - 2).split("-");
+						
+						String rightDate[] = null;
+						
+						if (tableToApplySelectionOn.columnIndexMap.containsKey(rightVal)) {
+							rightDate = rightArray[rightIndex].split("-");
+						}
+						else{
+						rightDate = rightArray[rightIndex].substring(6, rightArray[rightIndex].length() - 2).split("-");
+						}
+						
 
 						if (Integer.parseInt(leftDate[0]) == Integer.parseInt(rightDate[0]) && Integer.parseInt(leftDate[1]) == Integer.parseInt(rightDate[1]) && Integer.parseInt(leftDate[2]) == Integer.parseInt(rightDate[2])) {
 							listOfIndices.add(tupleNo);
@@ -244,7 +259,16 @@ public class WhereOperation {
 					} else if (type.equalsIgnoreCase("date")) {
 
 						String leftDate[] = array[index].split("-");
-						String rightDate[] = rightArray[rightIndex].substring(6, rightArray[rightIndex].length() - 2).split("-");
+						
+						String rightDate[] = null;
+						
+						if (tableToApplySelectionOn.columnIndexMap.containsKey(rightVal)) {
+							rightDate = rightArray[rightIndex].split("-");
+						}
+						else{
+						rightDate = rightArray[rightIndex].substring(6, rightArray[rightIndex].length() - 2).split("-");
+						}
+						
 
 						if (Integer.parseInt(leftDate[0]) < Integer.parseInt(rightDate[0])) {
 
@@ -263,6 +287,9 @@ public class WhereOperation {
 						}
 					}
 				}
+				/*if(tableToApplySelectionOn.tableName.equalsIgnoreCase("lineitem") && expression.toString().equals("lineitem.receiptdate >= date('1994-01-01')")){
+					//System.out.println(listOfIndices);
+					}*/
 			}
 		} else if (expression instanceof GreaterThan) {
 			
@@ -303,7 +330,15 @@ public class WhereOperation {
 
 					} else if (type.equalsIgnoreCase("date")) {
 						String leftDate[] = array[index].split("-");
-						String rightDate[] = rightArray[rightIndex].substring(6, rightArray[rightIndex].length() - 2).split("-");
+						
+						String rightDate[] = null;
+						
+						if (tableToApplySelectionOn.columnIndexMap.containsKey(rightVal)) {
+							rightDate = rightArray[rightIndex].split("-");
+						}
+						else{
+						rightDate = rightArray[rightIndex].substring(6, rightArray[rightIndex].length() - 2).split("-");
+						}
 
 						if (Integer.parseInt(leftDate[0]) < Integer.parseInt(rightDate[0])) {
 
@@ -365,9 +400,17 @@ public class WhereOperation {
 						}
 					} else if (type.equalsIgnoreCase("date")) {
 						
+						
 						String leftDate[] = array[index].split("-");
-						String rightDate[] = rightArray[rightIndex].substring(6, rightArray[rightIndex].length() - 2).split("-");
-
+						String rightDate[] = null;
+						
+						if (tableToApplySelectionOn.columnIndexMap.containsKey(rightVal)) {
+							rightDate = rightArray[rightIndex].split("-");
+						}
+						else{
+						rightDate = rightArray[rightIndex].substring(6, rightArray[rightIndex].length() - 2).split("-");
+						}
+												
 						if (Integer.parseInt(leftDate[0]) > Integer.parseInt(rightDate[0])) {
 
 						} else if (Integer.parseInt(leftDate[0]) == Integer.parseInt(rightDate[0])) {
@@ -375,18 +418,23 @@ public class WhereOperation {
 							} else if (Integer.parseInt(leftDate[1]) == Integer.parseInt(rightDate[1])) {
 								if (Integer.parseInt(leftDate[2]) >= Integer.parseInt(rightDate[2])) {
 								} else {
+									
 									listOfIndices.add(tupleNo);
 								}
 							} else {
+								
 								listOfIndices.add(tupleNo);
 							}
 						} else {
+							
 							listOfIndices.add(tupleNo);
 						}
 					}
 
 				}
-
+				/*if(tableToApplySelectionOn.tableName.equalsIgnoreCase("lineitem") && expression.toString().equals("lineitem.commitdate < lineitem.receiptdate")){
+					System.out.println(listOfIndices);
+					}*/
 			}
 		}
 		else if (expression instanceof MinorThanEquals) {
@@ -429,7 +477,16 @@ public class WhereOperation {
 					} else if (type.equalsIgnoreCase("date")) {
 						
 						String leftDate[] = array[index].split("-");
-						String rightDate[] = rightArray[rightIndex].substring(6, rightArray[rightIndex].length() - 2).split("-");
+						
+						String rightDate[] = null;
+						
+						if (tableToApplySelectionOn.columnIndexMap.containsKey(rightVal)) {
+							rightDate = rightArray[rightIndex].split("-");
+						}
+						else{
+						rightDate = rightArray[rightIndex].substring(6, rightArray[rightIndex].length() - 2).split("-");
+						}
+						
 
 						if (Integer.parseInt(leftDate[0]) > Integer.parseInt(rightDate[0])) {
 
@@ -470,13 +527,15 @@ public class WhereOperation {
 		}
 
 		else if (expression instanceof OrExpression) {
+			
+			
 			OrExpression orExpression = (OrExpression) expression;
 			Expression leftVal = ((Expression) orExpression.getLeftExpression());
 			Expression rightVal = ((Expression) orExpression.getRightExpression());
 
 			ArrayList<Integer> leftArr = expressionEvaluator(leftVal, tableToApplySelectionOn);
 			ArrayList<Integer> rightArr = expressionEvaluator(rightVal, tableToApplySelectionOn);
-
+						
 			TreeSet<Integer> set = new TreeSet<Integer>();
 			
 			for (int i : leftArr) {
@@ -485,12 +544,24 @@ public class WhereOperation {
 			for (int i : rightArr) {
 				set.add(i);
 			}
-
+			
 			for (int i : set) {
+				listOfIndices.add(i);
+			}
+			
+			
+			
+		}
+		else if (expression instanceof Parenthesis){
+			
+			ArrayList<Integer> expArr = expressionEvaluator(((Parenthesis)expression).getExpression(), tableToApplySelectionOn);
+			
+			for(int i:expArr){
 				listOfIndices.add(i);
 			}
 		}
 
+		
 		return listOfIndices;
 	}
 
@@ -1017,6 +1088,7 @@ public class WhereOperation {
 		tablesToJoin.add("region");
 		tablesToJoin.add("partsupp");
 		tablesToJoin.add("part");
+		tablesToJoin.add("supplier");
 		
 		for(Expression exp:allExp){
 			if (!(exp instanceof EqualsTo)){

@@ -6,15 +6,15 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Map.Entry;
-
-import net.sf.jsqlparser.parser.ParseException;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.parser.ParseException;
 import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectBody;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 
 public class SelectionOperation {
 	// this function is used for the evaluation of the select statement
@@ -99,18 +99,49 @@ public class SelectionOperation {
 			}	
 		}
 		
-		for(Expression s : WhereOperation.extractNonJoinExp(whereExpression)){
-			//System.out.println(s.toString());
-			for(Table t : tablesToJoin){
-				if(s.toString().contains(t.tableName)){
-					System.out.println("Table : " + t.tableName);
-					System.out.println("Expression : " + s.toString());
-					WhereOperation.selectionOnTable(s, t);
-				}
+		// the following is the ArrayList of Expression objects
+		ArrayList<Expression> expressionObjects = new ArrayList<Expression>();
+		
+		for(Expression expression : WhereOperation.extractNonJoinExp(whereExpression)){
+			expressionObjects.add(expression);
+		}
+		
+		HashMap<Table, ArrayList<Expression>> tableExpressionMap = new HashMap<Table, ArrayList<Expression>>();
+		
+		for(Table table : tablesToJoin){
+			ArrayList<Expression> tableExpressionList = new ArrayList<Expression>();
+			for(Expression exp: expressionObjects){
+				if(exp.toString().contains(table.tableName))
+					tableExpressionList.add(exp);
+			}
+			tableExpressionMap.put(table, tableExpressionList);
+		}
+		
+		
+		// start filtering the tables
+		for(Entry<Table, ArrayList<Expression>> etr : tableExpressionMap.entrySet()){
+			// if the number of expressions involving a table equals 1
+			if(etr.getValue().size() == 1){
+				// call the selection operator to filter the table
+				System.out.println("Filtering : " + etr.getKey().tableName);
+				WhereOperation.selectionOnTable(etr.getValue().get(0), etr.getKey());
+			} else if(etr.getValue().size() >= 2){
+				
+				// form the and expression which involves all the conditions involving a table
+				AndExpression andExp = new AndExpression(etr.getValue().get(0), etr.getValue().get(1));
+				for(int i = 2 ; i < etr.getValue().size() ; ++i)
+					andExp = new AndExpression(andExp, etr.getValue().get(i));
+				
+				// call the selection operator to filter the table
+				System.out.println("Filtering : " + etr.getKey().tableName);
+				WhereOperation.selectionOnTable(andExp, etr.getKey());
+			} else{
+				
 			}
 		}
 		
-	/*	// the following is the logic to find the join of all the tables iteratively
+		
+		// the following is the logic to find the join of all the tables iteratively
 		HashMap<Integer, Table> mapOfTables = new HashMap<Integer, Table>();
 		
 		int i = 0;
@@ -139,8 +170,6 @@ public class SelectionOperation {
 						for(String s : arrayList)
 							System.out.println(s);
 						
-						System.out.println("-->");
-						
 						if(arrayList.size()>0 && mapOfTables.get(iterativeIndex)!=null){
 							// calling Hash Join
 							Table newTable = HybridHash.evaluateJoin(t1, t2, arrayList.get(0), arrayList.get(1), arrayList.get(2), swapDirectory);
@@ -150,6 +179,6 @@ public class SelectionOperation {
 						}
 				}
 			}
-		}*/
+		}
 	}
 }
