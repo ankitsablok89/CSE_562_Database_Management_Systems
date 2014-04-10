@@ -2,6 +2,7 @@ package edu.buffalo.cse562;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.io.IOException;
@@ -10,7 +11,9 @@ import java.io.FileNotFoundException;
 import net.sf.jsqlparser.parser.CCJSqlParser;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.parser.ParseException;
+import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.SelectBody;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 
@@ -69,6 +72,7 @@ class Table {
 
 	// this function is used to populate the columnIndexMap for the table
 	public void populateColumnIndexMap() {
+		System.out.println("Table called : " + this.tableName);
 		int indexCounter = 0;
 		for (ColumnDefinition cdPair : this.columnDescriptionList) {
 			this.columnIndexMap.put(cdPair.getColumnName(), indexCounter++);
@@ -130,7 +134,7 @@ public class Main {
 	public static HashMap<String, File> tablesNameAndFileMap = new HashMap<String, File>();
 	
 	@SuppressWarnings({ "unchecked", "unused" })
-	public static void main(String[] args) throws ParseException, IOException {
+	public static void main(String[] args) throws ParseException, IOException, InterruptedException {
 
 		// iterate over the args[] array and set the above variables
 		for (int i = 0; i < args.length; ++i) {
@@ -195,7 +199,63 @@ public class Main {
 					tableObjectsMap.put(tableName, newTableObject);
 					
 				} else if (statementObject instanceof Select) {
-					SelectionOperation.selectionEvaluation(statementObject, tableObjectsMap, swapDirectory);
+					// this is the resultant table after selection
+					Table resultTable = SelectionOperation.selectionEvaluation(statementObject, tableObjectsMap, swapDirectory);
+					System.out.println("The resultant table is :" + resultTable.tableFilePath);
+					// this is this is the SelectBody object corresponding to the statement object
+					SelectBody selectBody = ((Select) statementObject).getSelectBody(); 
+					@SuppressWarnings("rawtypes")
+					List groupByColumns = ((PlainSelect)selectBody).getGroupByColumnReferences();
+					@SuppressWarnings("rawtypes")
+					List selectItemList = ((PlainSelect)selectBody).getSelectItems();
+					ArrayList<String> selectList = new ArrayList<String>();
+					for(Object column : selectItemList){
+						System.out.println("select list item : " + column.toString());
+						selectList.add(column.toString());
+					}
+					
+					// this variable is used to check if there is an aggregate function present in the select list
+					boolean aggregatePresent = false;
+					for(String selectItem : selectList){
+						if(selectItem.contains("sum(") || selectItem.contains("SUM(") || selectItem.contains("avg(") 
+						   || selectItem.contains("AVG(") || selectItem.contains("count(") || selectItem.contains("COUNT(")
+						   || selectItem.contains("min(") || selectItem.contains("MIN(") || selectItem.contains("max(")
+						   || selectItem.contains("MAX(")){
+							aggregatePresent = true;
+							break;
+						}
+					}
+					
+					// this is the list of items by which we sort the result
+					List orderByList = ((PlainSelect)selectBody).getOrderByElements();
+					
+					// if there are no group by columns present and there are no aggregates then just project the items
+					if(groupByColumns == null && !aggregatePresent){
+						Table table = ProjectTableOperation.projectTable(resultTable, selectList);
+						
+					}else{
+						
+						// make the object of Aggregate class to call Aggregate functions
+						AggregateOperations aggrObject = new AggregateOperations();
+						// this string is a comma separated string of GroupBy items
+						String groupItems;
+						
+						if(groupByColumns == null)
+							groupItems = "NOGroupBy";
+						else
+							groupItems = groupByColumns.toString();
+						
+						// this is the array of select items
+						String[] selectItemsArray = ((PlainSelect)selectBody).getSelectItems().
+						toString().replaceAll("\\[", "").replaceAll("\\]", "").trim().split(",");
+						
+						for(String s : selectItemsArray)
+							System.out.println("select items array : " + s);
+						
+						// call the aggregate function
+						aggrObject.getAggregate(resultTable, selectItemsArray, groupItems,orderByList).readTable();
+					}
+
 				}
 			}
 		}

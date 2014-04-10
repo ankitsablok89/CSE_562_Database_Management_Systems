@@ -42,11 +42,11 @@ public class WhereOperation {
 		//System.out.println(tableToApplySelectionOn.columnIndexMap);
 		
 		// this Table contains the resultant table, obtained after applying selection operation
-		File resultantTableFile = new File(tableToApplySelectionOn.tableDataDirectoryPath+System.getProperty("file.separator") + tableToApplySelectionOn.tableName + "WhereResultTable.tbl");
+		File resultantTableFile = new File(tableToApplySelectionOn.tableDataDirectoryPath+System.getProperty("file.separator") + tableToApplySelectionOn.tableName + "|.tbl");
 		if(!resultantTableFile.exists())
 			resultantTableFile.createNewFile();
 		
-		Table resultantTable = new Table(tableToApplySelectionOn.tableName + "WhereResultTable", 
+		Table resultantTable = new Table(tableToApplySelectionOn.tableName + "|", 
 										 tableToApplySelectionOn.noOfColumns,
 										 resultantTableFile,
 										 tableToApplySelectionOn.tableDataDirectoryPath);
@@ -133,7 +133,8 @@ public class WhereOperation {
 		} else if (expression instanceof IsNullExpression) {
 
 		}
-
+		// change the name of the resultant table to be the name of the table on which you applied selection conditions, this is done to extract the join conditions
+		resultantTable.tableName = tableToApplySelectionOn.tableName;
 		return resultantTable;
 	}
 
@@ -1239,9 +1240,12 @@ public class WhereOperation {
 	
 	public static ArrayList<String> evaluateJoinCondition (Table table1,Table table2,Expression expression)
 	{
+		System.out.println("table 1 name:" + table1.tableName);
+		System.out.println("table 2 name:" + table2.tableName);
 		ArrayList<String> arrayList = new ArrayList<String>();
 
 		HashSet<String> set = extractCond(expression);
+		
 		for(String s: set)
 		{
 			String[] strArr=null;

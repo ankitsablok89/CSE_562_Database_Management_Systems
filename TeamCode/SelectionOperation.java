@@ -19,19 +19,17 @@ import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 public class SelectionOperation {
 	// this function is used for the evaluation of the select statement
 	@SuppressWarnings("rawtypes")
-	public static void selectionEvaluation(Statement statementObject, HashMap<String, Table> tableObjectsMap, File swapDirectory)
+	public static Table selectionEvaluation(Statement statementObject, HashMap<String, Table> tableObjectsMap, File swapDirectory)
 	throws IOException, ParseException {
 
 		// this is the SelectBody object corresponding to the statement object
 		SelectBody selectBody = ((Select) statementObject).getSelectBody();
 		// extract the list of "ORDER BY" elements from the plain select statement
 		@SuppressWarnings({ "unused", "rawtypes" })
-		List orderbyElementsList = ((PlainSelect) selectBody)
-				.getOrderByElements();
+		List orderbyElementsList = ((PlainSelect) selectBody).getOrderByElements();
 		// extract the list of "GROUP BY" elements from the plain select statement
 		@SuppressWarnings({ "rawtypes", "unused" })
-		List groupbyElementsList = ((PlainSelect) selectBody)
-				.getGroupByColumnReferences();
+		List groupbyElementsList = ((PlainSelect) selectBody).getGroupByColumnReferences();
 		// extract the "LIMIT" value in the plain select statement
 		@SuppressWarnings("unused")
 		Limit limit = ((PlainSelect) selectBody).getLimit();
@@ -43,8 +41,7 @@ public class SelectionOperation {
 		ArrayList<String> listOfTables = new ArrayList<String>();
 
 		if (((PlainSelect) selectBody) != null)
-			listOfTables.add(((PlainSelect) selectBody).getFromItem()
-					.toString().toLowerCase());
+			listOfTables.add(((PlainSelect) selectBody).getFromItem().toString().toLowerCase());
 
 		if (((PlainSelect) selectBody).getJoins() != null) {
 			List joinList = ((PlainSelect) selectBody).getJoins();
@@ -75,11 +72,16 @@ public class SelectionOperation {
 			} else
 				tablesToJoin.add(tableObjectsMap.get(tableAliasFilterArray[0]));
 		}
-
+		
+		// this Table variable stores the resultant table obtained from joining the tables in the from clause
+		Table resultTable = null;
+		
 		// if the number of tables to join is just 1, then we directly pass in the where expression to the selection operation
 		if (tablesToJoin.size() == 1) {
-			// just filter the table
-			WhereOperation.selectionOnTable(whereExpression,tablesToJoin.get(0));
+			// in the case when I just have a single table with me to join, I just need to filter that table and that will be my resultant table
+			resultTable = WhereOperation.selectionOnTable(whereExpression,tablesToJoin.get(0));
+			// return the table after performing the filtering if there is just a single table
+			return resultTable;
 		}
 
 		// now we scan the final list of tables to be joined and change their column description list and column index maps
@@ -87,8 +89,7 @@ public class SelectionOperation {
 			// iterate over the table objects and change their columnDescriptions and columnIndexMap
 			for (Table table : tablesToJoin) {
 
-				// make a new array list of column definition objects for the
-				// new table
+				// make a new array list of column definition objects for the new table
 				ArrayList<ColumnDefinition> colDefinitionList = new ArrayList<ColumnDefinition>();
 				for (ColumnDefinition cd : table.columnDescriptionList) {
 					ColumnDefinition temp = new ColumnDefinition();
@@ -112,7 +113,6 @@ public class SelectionOperation {
 
 			// the following is the ArrayList of Expression objects
 			ArrayList<Expression> expressionObjects = new ArrayList<Expression>();
-
 			for (Expression expression : WhereOperation.extractNonJoinExp(whereExpression)) {
 				expressionObjects.add(expression);
 			}
@@ -128,38 +128,45 @@ public class SelectionOperation {
 				}
 				tableExpressionMap.put(table, tableExpressionList);
 			}
-
-			// start filtering the tables
+			
+			// the following is the modified list of tables that need to be joined, in this case all the tables are filtered on a condition
+			ArrayList<Table> filteredTablesToJoin = new ArrayList<Table>();
+			
+			// start filtering the tables, to form the join
 			for (Entry<Table, ArrayList<Expression>> etr : tableExpressionMap.entrySet()) {
 				// if the number of expressions involving a table equals 1
 				if (etr.getValue().size() == 1) {
 					// call the selection operator to filter the table
 					System.out.println("Filtering : " + etr.getKey().tableName);
-					WhereOperation.selectionOnTable(etr.getValue().get(0),etr.getKey());
+					// add the filtered table to the list of tables that need to be joined
+					filteredTablesToJoin.add(WhereOperation.selectionOnTable(etr.getValue().get(0),etr.getKey()));
 				} else if (etr.getValue().size() >= 2) {
 
-					// form the and expression which involves all the conditions
-					// involving a table
+					// form the and expression which involves all the conditions involving a table
 					AndExpression andExp = new AndExpression(etr.getValue().get(0), etr.getValue().get(1));
 					for (int i = 2; i < etr.getValue().size(); ++i)
 						andExp = new AndExpression(andExp, etr.getValue().get(i));
 
 					// call the selection operator to filter the table
 					System.out.println("Filtering : " + etr.getKey().tableName);
-					WhereOperation.selectionOnTable(andExp, etr.getKey());
+					// add the filtered table to the list of tables that need to be joined
+					filteredTablesToJoin.add(WhereOperation.selectionOnTable(andExp, etr.getKey()));
 				} else {
-
+					// this is the case where there is no filtering condition corresponding to a table
+					filteredTablesToJoin.add(etr.getKey());
 				}
 			}
 
 			// the following is the logic to find the join of all the tables iteratively
 			HashMap<Integer, Table> mapOfTables = new HashMap<Integer, Table>();
 			int i = 0;
-			for (Table table : tablesToJoin) {
+			for (Table table : filteredTablesToJoin) {
 				mapOfTables.put(i, table);
 				++i;
 			}
-
+			System.out.println(mapOfTables);
+			
+			
 			Table t1 = null;
 			Table t2 = null;
 			int countOfJoins = 0;
@@ -167,32 +174,42 @@ public class SelectionOperation {
 
 			if (index > 0) {
 				while (countOfJoins != index) {
-
+					//System.out.println("In While");
 					for (int iterativeIndex = index - 1; iterativeIndex >= 0; iterativeIndex--) {
 
 						t1 = mapOfTables.get(index);
 						t2 = mapOfTables.get(iterativeIndex);
+						//if(t2== null)
+							//System.out.println(t2);
 						if (t2 == null) {
 							continue;
 						}
 
 						// this array list stores the join conditions for table involved
 						ArrayList<String> arrayList = WhereOperation.evaluateJoinCondition(t1, t2, whereExpression);
-
-						/*for (String s : arrayList)
-							System.out.println(s);*/
+						System.out.println(arrayList.size());
+						for (String s : arrayList)
+							System.out.println(s);
 
 						if (arrayList.size() > 0 && mapOfTables.get(iterativeIndex) != null) {
 							// call the HashJoin and evaluate the new table
-							Table newTable = HybridHash.evaluateJoin(t1, t2,arrayList.get(0), arrayList.get(1),arrayList.get(2), swapDirectory);
+							System.out.println("In here");
+							resultTable = HybridHash.evaluateJoin(t1, t2,arrayList.get(0), arrayList.get(1),arrayList.get(2), swapDirectory);
 							mapOfTables.put(iterativeIndex, null);
-							mapOfTables.put(index, newTable);
+							mapOfTables.put(index, resultTable);
 							countOfJoins++;
 						}
 					}
 				}
 			}
+			
+			if(resultTable != null){
+				for(ColumnDefinition cd : resultTable.columnDescriptionList)
+					System.out.println(cd.getColumnName());
+			}
 		}
-
+		
+		// return the resultant table after performing all selections
+		return resultTable;
 	}
 }
