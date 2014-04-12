@@ -2,7 +2,6 @@ package edu.buffalo.cse562;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.List;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.io.IOException;
@@ -11,9 +10,9 @@ import java.io.FileNotFoundException;
 import net.sf.jsqlparser.parser.CCJSqlParser;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.parser.ParseException;
+import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectBody;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
 
@@ -32,6 +31,8 @@ class Table {
 	ArrayList<ColumnDefinition> columnDescriptionList;
 	// this HashMap stores the mappings from the columnNames to integer indices in the table
 	HashMap<String, Integer> columnIndexMap;
+	// this ArrayList stores the tuples of the table in case the --swap flag is not present
+	ArrayList<String> tableTuples;
 	// this is the FileReader object for the table
 	FileReader fr;
 	// this is the BufferedReader object for the table
@@ -45,6 +46,7 @@ class Table {
 		this.tableDataDirectoryPath = tableDataDirectoryPath;
 		this.columnDescriptionList = new ArrayList<ColumnDefinition>();
 		this.columnIndexMap = new HashMap<String, Integer>();
+		this.tableTuples = new ArrayList<String>();
 		this.fr = null;
 		this.br = null;
 	}
@@ -57,22 +59,25 @@ class Table {
 		this.tableDataDirectoryPath = tableToClone.tableDataDirectoryPath;
 		this.columnDescriptionList = tableToClone.columnDescriptionList;
 		this.columnIndexMap = tableToClone.columnIndexMap;
+		this.tableTuples = tableToClone.tableTuples;
 		this.fr = null;
 		this.br = null;
 	}
 
 	// this function is used to read the tuples of the table
 	public void readTable() throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader(this.tableFilePath));
+		BufferedReader br = new BufferedReader(new FileReader(this.tableFilePath),32768);
 		String bufferString;
-		while ((bufferString = br.readLine()) != null)
+		while ((bufferString = br.readLine()) != null){
+			if(bufferString.charAt(bufferString.length() - 1) == '|')
+				bufferString = bufferString.substring(0, bufferString.length() - 1);
 			System.out.println(bufferString);
+		}
 		br.close();
 	}
 
 	// this function is used to populate the columnIndexMap for the table
 	public void populateColumnIndexMap() {
-		System.out.println("Table called : " + this.tableName);
 		int indexCounter = 0;
 		for (ColumnDefinition cdPair : this.columnDescriptionList) {
 			this.columnIndexMap.put(cdPair.getColumnName(), indexCounter++);
@@ -82,7 +87,7 @@ class Table {
 	// this function is used to allocate the BufferedReader and the FileReader object for the .dat or .tbl file associated with the table
 	public void allocateBufferedReaderForTableFile() throws FileNotFoundException{
 		this.fr = new FileReader(this.tableFilePath);
-		this.br = new BufferedReader(fr);
+		this.br = new BufferedReader(fr,32768);
 	}
 	
 	// this function is used to return a tuple at a time from the .dat or .tbl file describing the table
@@ -109,6 +114,7 @@ class Table {
 	// this function is used to tell if a particular attribute or column is present in the Table's column description list or not
 	public boolean checkColumnNamePresentOrNot(String columnName){
 		
+		// iterate through the column definition list of the table and return true or false accordingly
 		for(ColumnDefinition cd : this.columnDescriptionList){
 			if(cd.getColumnName().equals(columnName))
 				return true;
@@ -150,6 +156,7 @@ public class Main {
 			}
 		}
 
+		System.out.println("SWAP : " + swapDirectory);
 		// after setting all the variables populate the HashMap with (table_name, table_file_path) pairs
 		for (File tableFile : dataDirectory.listFiles()) {
 			// this is the actual name of the file
@@ -199,63 +206,16 @@ public class Main {
 					tableObjectsMap.put(tableName, newTableObject);
 					
 				} else if (statementObject instanceof Select) {
-					// this is the resultant table after selection
+					// call the selection evaluation operator after encountering the select statement
 					Table resultTable = SelectionOperation.selectionEvaluation(statementObject, tableObjectsMap, swapDirectory);
-					System.out.println("The resultant table is :" + resultTable.tableFilePath);
-					// this is this is the SelectBody object corresponding to the statement object
-					SelectBody selectBody = ((Select) statementObject).getSelectBody(); 
-					@SuppressWarnings("rawtypes")
-					List groupByColumns = ((PlainSelect)selectBody).getGroupByColumnReferences();
-					@SuppressWarnings("rawtypes")
-					List selectItemList = ((PlainSelect)selectBody).getSelectItems();
-					ArrayList<String> selectList = new ArrayList<String>();
-					for(Object column : selectItemList){
-						System.out.println("select list item : " + column.toString());
-						selectList.add(column.toString());
-					}
+					Limit limit = ((PlainSelect)(((Select) statementObject).getSelectBody())).getLimit();
 					
-					// this variable is used to check if there is an aggregate function present in the select list
-					boolean aggregatePresent = false;
-					for(String selectItem : selectList){
-						if(selectItem.contains("sum(") || selectItem.contains("SUM(") || selectItem.contains("avg(") 
-						   || selectItem.contains("AVG(") || selectItem.contains("count(") || selectItem.contains("COUNT(")
-						   || selectItem.contains("min(") || selectItem.contains("MIN(") || selectItem.contains("max(")
-						   || selectItem.contains("MAX(")){
-							aggregatePresent = true;
-							break;
-						}
+					if(limit != null){
+						AggregateOperations.LimitOnTable(resultTable, (int)limit.getRowCount());
 					}
-					
-					// this is the list of items by which we sort the result
-					List orderByList = ((PlainSelect)selectBody).getOrderByElements();
-					
-					// if there are no group by columns present and there are no aggregates then just project the items
-					if(groupByColumns == null && !aggregatePresent){
-						Table table = ProjectTableOperation.projectTable(resultTable, selectList);
-						
-					}else{
-						
-						// make the object of Aggregate class to call Aggregate functions
-						AggregateOperations aggrObject = new AggregateOperations();
-						// this string is a comma separated string of GroupBy items
-						String groupItems;
-						
-						if(groupByColumns == null)
-							groupItems = "NOGroupBy";
-						else
-							groupItems = groupByColumns.toString();
-						
-						// this is the array of select items
-						String[] selectItemsArray = ((PlainSelect)selectBody).getSelectItems().
-						toString().replaceAll("\\[", "").replaceAll("\\]", "").trim().split(",");
-						
-						for(String s : selectItemsArray)
-							System.out.println("select items array : " + s);
-						
-						// call the aggregate function
-						aggrObject.getAggregate(resultTable, selectItemsArray, groupItems,orderByList).readTable();
+					else{
+						resultTable.readTable();
 					}
-
 				}
 			}
 		}

@@ -89,7 +89,11 @@ public class HybridHash {
 						ArrayList<String> joiningTuples = hashJoinTable.get(tupleComponents[joiningAttributeIndexTable1]);
 						// perform the join operation
 						for(String joinString : joiningTuples){
-							bwr.write(tupleString + joinString + "\n");
+							// this is the code that is implemented for pipe separation
+							if(tupleString.charAt(tupleString.length() - 1) == '|')
+								bwr.write(tupleString + joinString + "\n");
+							else
+								bwr.write(tupleString + "|" + joinString + "\n");
 						}
 						bwr.close();
 					}
@@ -125,7 +129,11 @@ public class HybridHash {
 						ArrayList<String> joiningTuples = hashJoinTable.get(tupleComponents[joiningAttributeIndexTable2]);
 						// perform the join operation
 						for(String joinString : joiningTuples){
-							bwr.write(joinString + tupleString + "\n");
+							// this is the code for implementing the pipe operation
+							if(joinString.charAt(joinString.length() - 1) == '|')
+								bwr.write(joinString + tupleString + "\n");
+							else
+								bwr.write(joinString + "|" + tupleString + "\n");
 						}
 						bwr.close();
 					}
@@ -234,8 +242,14 @@ public class HybridHash {
 							// this is the BufferedWriter object for writing to the joinedTable file
 							BufferedWriter tempBW = new BufferedWriter(new FileWriter(joinedTable.tableFilePath, true));
 							
-							for(String joinString : joinList)
-								tempBW.write(bucketString + joinString + "\n");
+							// this is the logic to write a '|' separated string
+							for(String joinString : joinList){
+								
+								if(joinString.charAt(joinString.length() - 1) == '|')
+									tempBW.write(bucketString + joinString + "\n");
+								else
+									tempBW.write(bucketString + "|" + joinString + "\n");
+							}
 							
 							// close the BufferedWriter
 							tempBW.close();
@@ -279,8 +293,12 @@ public class HybridHash {
 							// this is the BufferedWriter object for writing to the joinedTable file
 							BufferedWriter tempBW = new BufferedWriter(new FileWriter(joinedTable.tableFilePath, true));
 							
-							for(String joinString : joinList)
-								tempBW.write(joinString + bucketString + "\n");
+							for(String joinString : joinList){
+								if(joinString.charAt(joinString.length() - 1) == '|')
+									tempBW.write(joinString + bucketString + "\n");
+								else
+									tempBW.write(joinString + "|" + bucketString + "\n");
+							}
 							
 							// close the BufferedWriter
 							tempBW.close();

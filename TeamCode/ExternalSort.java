@@ -115,7 +115,9 @@ public class ExternalSort {
 					}
 					
 				}
-				
+				/*System.out.println("-------");
+				System.out.println(table.columnDescriptionList);
+				System.out.println(table.columnIndexMap);*/
 				//System.out.println("outside");
 				Collections.sort(rows,sortingComp);
 				
@@ -535,7 +537,8 @@ class MergingComparator implements Comparator<String>{
 		String s1[] = o1.split("\\|");
 		String s2[] = o2.split("\\|");
 		
-		if(type.equalsIgnoreCase("char")|| type.equalsIgnoreCase("VARCHAR")||type.equalsIgnoreCase("string")){
+		
+		if(type.equalsIgnoreCase("char")|| type.equalsIgnoreCase("VARCHAR")||type.equalsIgnoreCase("String")){
 		
 			if(s1[index].equals(s2[index])){
 					if(moveToNextOrdering()){
@@ -569,7 +572,7 @@ class MergingComparator implements Comparator<String>{
 			else {
 				int x =0;
 				if(order==false){
-				
+					
 					if(Double.parseDouble(s1[index])>Double.parseDouble(s2[index])){
 						x = 1;
 					}

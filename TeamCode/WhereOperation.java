@@ -41,6 +41,10 @@ public class WhereOperation {
 
 		//System.out.println(tableToApplySelectionOn.columnIndexMap);
 		
+		// if the where expression is null then we don't apply any operations on the table and just return the table as is
+		if(expression == null)
+			return tableToApplySelectionOn;
+		
 		// this Table contains the resultant table, obtained after applying selection operation
 		File resultantTableFile = new File(tableToApplySelectionOn.tableDataDirectoryPath+System.getProperty("file.separator") + tableToApplySelectionOn.tableName + "|.tbl");
 		if(!resultantTableFile.exists())
@@ -58,7 +62,7 @@ public class WhereOperation {
 
 		// we use the following conditions to evaluate the expressions
 		if (expression instanceof EqualsTo || expression instanceof GreaterThanEquals
-			|| expression instanceof GreaterThan || expression instanceof MinorThanEquals || expression instanceof MinorThan) {
+			|| expression instanceof GreaterThan || expression instanceof MinorThanEquals || expression instanceof MinorThan || expression instanceof NotEqualsTo) {
 			
 			// indices of the tuples  that match the where clause or satisfy the where clause
 			ArrayList<Integer> listOfIndices = expressionEvaluator(expression, tableToApplySelectionOn);
@@ -126,8 +130,6 @@ public class WhereOperation {
 
 		} else if (expression instanceof Between) {
 
-		} else if (expression instanceof NotEqualsTo) {
-
 		} else if (expression instanceof NullValue) {
 
 		} else if (expression instanceof IsNullExpression) {
@@ -140,6 +142,7 @@ public class WhereOperation {
 
 	// this method is used to evaluate expression recursively, it does logical, arithmetic and relational operations, and returns a list of indices that satisfy all the conditions
 	private static ArrayList<Integer> expressionEvaluator(Expression expression, Table tableToApplySelectionOn) throws IOException, ParseException {
+		
 		
 		
 		// this is the actual list of indices that stores the indices of the tuples that satisfy all the conditions
@@ -162,10 +165,14 @@ public class WhereOperation {
 				listOfIndices = alegbricExpressionEvaluator(equalsExpression, tableToApplySelectionOn);
 
 			} else {
-				
 				String leftVal = leftExpression.toString();
 				String rightVal = rightExpression.toString();
-
+				//System.out.println(tableToApplySelectionOn);
+				//System.out.println(tableToApplySelectionOn.columnDescriptionList);
+				//System.out.println(tableToApplySelectionOn.columnIndexMap);
+				/*System.out.println(leftVal);
+				System.out.println(tableToApplySelectionOn.columnIndexMap.get(leftVal));
+				*/
 				String type = tableToApplySelectionOn.columnDescriptionList.get(tableToApplySelectionOn.columnIndexMap.get(leftVal)).getColDataType().getDataType();
 				
 				String tuple = null;
@@ -220,6 +227,83 @@ public class WhereOperation {
 					}
 				}
 			}
+		} else if (expression instanceof NotEqualsTo) {
+
+		
+			
+			// this extracts the equal to clause in the WHERE clause
+			NotEqualsTo equalsExpression = (NotEqualsTo) expression;
+			
+			// this extracts the left and the right expressions in the equal to clause
+			Expression leftExpression = ((Expression) equalsExpression.getLeftExpression());
+			Expression rightExpression = ((Expression) equalsExpression.getRightExpression());
+
+			if (leftExpression instanceof BinaryExpression || rightExpression instanceof BinaryExpression) {
+				listOfIndices = alegbricExpressionEvaluator(equalsExpression, tableToApplySelectionOn);
+
+			} else {
+		
+				
+				String leftVal = leftExpression.toString();
+				String rightVal = rightExpression.toString();
+
+				String type = tableToApplySelectionOn.columnDescriptionList.get(tableToApplySelectionOn.columnIndexMap.get(leftVal)).getColDataType().getDataType();
+				
+				String tuple = null;
+				int tupleNo = 0;
+				while ((tuple = tableToApplySelectionOn.returnTuple()) != null) {
+					tupleNo++;
+					String array[] = tuple.split("\\|");
+					int index = tableToApplySelectionOn.columnIndexMap.get(leftVal);
+					String[] rightArray = null;
+					int rightIndex = 0;
+
+					if (tableToApplySelectionOn.columnIndexMap.containsKey(rightVal)) {
+						rightIndex = tableToApplySelectionOn.columnIndexMap.get(rightVal);
+						rightArray = array;
+					} else {
+						rightArray = new String[1];
+						rightArray[0] = rightVal;
+					}
+
+					if (type.equalsIgnoreCase("string") || type.equalsIgnoreCase("char") || type.equalsIgnoreCase("varchar")) {
+						if (tableToApplySelectionOn.columnIndexMap.containsKey(rightVal)) {
+							if (!array[index].equals(rightArray[rightIndex])) {
+								listOfIndices.add(tupleNo);
+							}
+						} else {
+							
+		
+							if (!array[index].equals(rightArray[rightIndex].substring(1,rightArray[rightIndex].length() - 1))) {
+								listOfIndices.add(tupleNo);
+							}
+						}
+					} else if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("decimal")) {
+						
+						if (Double.parseDouble(array[index]) != Double.parseDouble(rightArray[rightIndex])) {
+							listOfIndices.add(tupleNo);
+						}
+
+					} else if (type.equalsIgnoreCase("date")) {
+						String leftDate[] = array[index].split("-");
+						
+						String rightDate[] = null;
+						
+						if (tableToApplySelectionOn.columnIndexMap.containsKey(rightVal)) {
+							rightDate = rightArray[rightIndex].split("-");
+						}
+						else{
+						rightDate = rightArray[rightIndex].substring(6, rightArray[rightIndex].length() - 2).split("-");
+						}
+						
+
+						if (Integer.parseInt(leftDate[0]) != Integer.parseInt(rightDate[0]) && Integer.parseInt(leftDate[1]) == Integer.parseInt(rightDate[1]) && Integer.parseInt(leftDate[2]) != Integer.parseInt(rightDate[2])) {
+							listOfIndices.add(tupleNo);
+						}
+					}
+				}
+			}
+		
 		}
 
 		else if (expression instanceof GreaterThanEquals) {
@@ -795,6 +879,49 @@ public class WhereOperation {
 					listOfIndices.add(tupleNo);
 				}
 			}
+		} else if(expression instanceof NotEqualsTo){
+
+			String exps[] = expression.toString().split("<>");
+			ArrayList<String> left = braceExp(exps[0]);
+			ArrayList<String> right = braceExp(exps[1]);
+			String[] leftArr = new String[left.size()];
+			String[] rightArr = new String[right.size()];
+			leftArr = left.toArray(leftArr);
+			rightArr = right.toArray(rightArr);
+			leftExp = convertToPos(leftArr);
+			rightExp = convertToPos(rightArr);
+			String tuple = null;
+			int tupleNo = 0;
+
+			while ((tuple = tableToAppySelectionOn.returnTuple()) != null) {
+				tupleNo++;
+				String array[] = tuple.split("\\|");
+				String evalLeftStack[] = new String[leftExp.length];
+				String evalRightStack[] = new String[rightExp.length];
+
+				for (int j = 0; j < leftExp.length; j++) {
+					if (tableToAppySelectionOn.columnIndexMap.containsKey(leftExp[j])) {
+						int index = tableToAppySelectionOn.columnIndexMap.get(leftExp[j]);
+						evalLeftStack[j] = array[index];
+					} else {
+						evalLeftStack[j] = leftExp[j];
+					}
+				}
+				
+				for (int j = 0; j < rightExp.length; j++) {
+					if (tableToAppySelectionOn.columnIndexMap.containsKey(rightExp[j])) {
+						int index = tableToAppySelectionOn.columnIndexMap.get(rightExp[j]);
+						evalRightStack[j] = array[index];
+					} else {
+						evalRightStack[j] = rightExp[j];
+					}
+				}
+
+				if (evaluate(evalLeftStack) != evaluate(evalRightStack)) {
+					listOfIndices.add(tupleNo);
+				}
+			}
+		
 		}
 
 		return listOfIndices;
@@ -1090,7 +1217,12 @@ public class WhereOperation {
 		tablesToJoin.add("partsupp");
 		tablesToJoin.add("part");
 		tablesToJoin.add("supplier");
-		
+		tablesToJoin.add("n1");
+		tablesToJoin.add("n2");
+		tablesToJoin.add("r1");
+		tablesToJoin.add("p1");
+		tablesToJoin.add("ps1");
+		tablesToJoin.add("s1");
 		for(Expression exp:allExp){
 			if (!(exp instanceof EqualsTo)){
 				nonJoinExp.add(exp);
@@ -1240,8 +1372,8 @@ public class WhereOperation {
 	
 	public static ArrayList<String> evaluateJoinCondition (Table table1,Table table2,Expression expression)
 	{
-		System.out.println("table 1 name:" + table1.tableName);
-		System.out.println("table 2 name:" + table2.tableName);
+		/*System.out.println("table 1 name:" + table1.tableName);
+		System.out.println("table 2 name:" + table2.tableName);*/
 		ArrayList<String> arrayList = new ArrayList<String>();
 
 		HashSet<String> set = extractCond(expression);

@@ -1,19 +1,17 @@
 package edu.buffalo.cse562;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
+import java.util.List;
 import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
-
+import java.io.FileWriter;
+import java.util.ArrayList;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import net.sf.jsqlparser.parser.ParseException;
 import net.sf.jsqlparser.statement.create.table.ColDataType;
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
@@ -152,7 +150,7 @@ public class AggregateOperations
 					
 					flag=1;
 					String column=tupleList[(newTable.columnIndexMap.get(columnName))];
-					System.out.println(column);
+					//System.out.println(column);
 					if(countMap.containsKey(MatchedColumn))
 					{
 
@@ -337,7 +335,7 @@ public class AggregateOperations
 	public Table getAggregate(Table newTable,String[] selectList,String check,List orderByList) throws IOException, ParseException, InterruptedException
 	{	
 		Table newTable1=null;
-		System.out.println("getAggregate Table: " + newTable.tableFilePath);
+		//System.out.println("getAggregate Table: " + newTable.tableFilePath);
 		String[] tupleList=null;
 		String canString=null;
 		HashMap<String,Double> map;
@@ -348,31 +346,31 @@ public class AggregateOperations
 	
 		String editedGroupBy=null;
 		String[] groupBy=null;
-		System.out.println("getAggregate check: " + check);
+	//	System.out.println("getAggregate check: " + check);
 		
 		if(!check.contains("NOGroupBy"))
 		{
 			editedGroupBy=check.substring(1,check.lastIndexOf("]"));
 			groupBy=editedGroupBy.split(",");	
-			System.out.println("getAggregate GroupBy:");
-			for(String s : groupBy)
-				System.out.println("getAggregate GroupBy: " + s);
+			//System.out.println("getAggregate GroupBy:");
+			/*for(String s : groupBy)
+				System.out.println("getAggregate GroupBy: " + s);*/
 		}
 		else
 		{
 			groupBy=check.split			(",");	
-			for(String s : groupBy)
-				System.out.println("getAggregate NoGroupBy: " + s);
+			/*for(String s : groupBy)
+				System.out.println("getAggregate NoGroupBy: " + s);*/
 		}
 
 		for (int i = 0; i < groupBy.length; i++) {
 			groupBy[i] = groupBy[i].trim();
-			System.out.println("Trimmed GroupBy:" + groupBy[i]);
+			//System.out.println("Trimmed GroupBy:" + groupBy[i]);
 		}
 
 		for (int i = 0; i < selectList.length; i++) {
 			selectList[i] = selectList[i].trim();
-			System.out.println("getAggregate Trimmed selectListItem : " + selectList[i]);
+			//System.out.println("getAggregate Trimmed selectListItem : " + selectList[i]);
 		}
 
 		ArrayList<Object> arrTuple = null;
@@ -389,28 +387,34 @@ public class AggregateOperations
 		Double max=0.0;
 		
 		//Initializing the table and the table constructor
-		System.out.println("GroupBy file : " + newTable.tableDataDirectoryPath + System.getProperty("file.separator") + newTable.tableName + "Group.tbl");
+		//System.out.println("GroupBy file : " + newTable.tableDataDirectoryPath + System.getProperty("file.separator") + newTable.tableName + "Group.tbl");
 		File groupByFile = new File(newTable.tableDataDirectoryPath + System.getProperty("file.separator") + newTable.tableName + "Group.tbl");
 		
 		// check if the group by file exists or not, if not then create it
 		if(!groupByFile.exists()){
-			System.out.println("Creating GroupBy file");
+			//System.out.println("Creating GroupBy file");
 			groupByFile.createNewFile();
 		}
 		
 		// this is the groupBy table corresponding to the group by file created above
 		GroupByTable = new Table(newTable.tableName + "Group", newTable.noOfColumns, groupByFile,newTable.tableDataDirectoryPath);	
 		
+		//System.out.println(newTable.columnIndexMap);
+		if(!groupBy[0].contains("NOGroupBy"))
+		{
 		for(int i=0;i<groupBy.length;i++){
 			
 			ColumnDefinition colDescTypePair=new ColumnDefinition();
 		    ColDataType col=new ColDataType();
 			colDescTypePair.setColumnName(groupBy[i]);
-			col.setDataType("String");
+			String type=newTable.columnDescriptionList.get(newTable.columnIndexMap.get(groupBy[i])).getColDataType().getDataType().toString();
+
+			col.setDataType(type);
 			colDescTypePair.setColDataType(col);
             GroupByTable.columnDescriptionList.add(colDescTypePair);
 		}
-		System.out.println("Size"+GroupByTable.columnDescriptionList.size());
+		}
+		//System.out.println("Size"+GroupByTable.columnDescriptionList.size());
 		//Checks if the groupBycolumn is null
 		if(groupBy[0].contains("NOGroupBy")){
 			
@@ -420,6 +424,7 @@ public class AggregateOperations
 				   selectList[i].contains("avg")||selectList[i].contains("min")||selectList[i].contains("max")
 				   ||selectList[i].contains("COUNT")|| selectList[i].contains("count")||selectList[i].contains("MIN")
 				   ||selectList[i].contains("MAX")){
+					
 					columnName=selectList[i].substring(selectList[i].indexOf("(")+1,selectList[i].lastIndexOf(")"));
 				}	
 				
@@ -436,6 +441,7 @@ public class AggregateOperations
 				if(selectList[i].contains("SUM")||selectList[i].contains("sum")&&
 						!columnName.contains("*")&&!columnName.contains("-")&&!columnName.contains("+"))
 				{
+					
 					columnNo=newTable.columnIndexMap.get(columnName.trim());
 					canString=newTable.returnTuple();
 
@@ -450,7 +456,7 @@ public class AggregateOperations
 					FileWriter fw = new FileWriter(new File(newTable.tableDataDirectoryPath + System.getProperty("file.separator") + newTable.tableName + "Group.tbl"),true);
 					BufferedWriter bw = new BufferedWriter(fw);
 					
-					bw.write(Sum.toString());
+					bw.write(BigDecimal.valueOf(Sum).toString());
 					bw.close();
 				}
 
@@ -559,7 +565,7 @@ public class AggregateOperations
 				
 				if(selectList[i].contains("SUM")||selectList[i].contains("sum"))
 				{	
-					System.out.println("getAggregate in SUM function");
+					//System.out.println("getAggregate in SUM function");
 					if(selectList[i].contains("AS")||selectList[i].contains("as"))
 					{
 						str=selectList[i].substring(selectList[i].lastIndexOf(" ")+1,selectList[i].length());
@@ -635,6 +641,9 @@ public class AggregateOperations
 					else if(!columnName.contains("*")||columnName.contains("-")||columnName.contains("+")
 							||columnName.contains("/")){  
 						//Storing the aggregate function
+						/*System.out.println(columnName);
+						System.out.println("abhinav");
+						System.out.println(newTable.columnIndexMap);*/
 						columnNo=newTable.columnIndexMap.get(columnName);
 						String aggString=selectList[i].substring(0,selectList[i].indexOf("("));
 						map=getGroupBy(newTable,check,columnName, columnNo, aggString);
@@ -732,7 +741,7 @@ public class AggregateOperations
 						}
 						ColumnDefinition colDescTypePair=new ColumnDefinition();
 					    ColDataType col=new ColDataType();
-						colDescTypePair.setColumnName(columnName.trim());
+						colDescTypePair.setColumnName(selectList[i]);
 						col.setDataType("DECIMAL");
 						colDescTypePair.setColDataType(col);
 		                GroupByTable.columnDescriptionList.add(colDescTypePair);
@@ -744,7 +753,7 @@ public class AggregateOperations
 					}
 					if(selectList[i].contains("distinct")||selectList[i].contains("DISTINCT"))
 					{
-						System.out.println("column Name="+columnName);
+						//System.out.println("column Name="+columnName);
 						CountMap=getGroupBy(newTable,check, columnName.trim(), columnNo,"distinct");
 					}
 					else
@@ -1059,8 +1068,9 @@ public class AggregateOperations
 					}
 				}
 			}
+			
 			GroupByTable.populateColumnIndexMap();
-			System.out.println(GroupByTable.columnIndexMap);
+		
 			ArrayList<String> arrnew=new ArrayList<String>();
 
 			for(String s:arrList)
@@ -1073,21 +1083,21 @@ public class AggregateOperations
 				arrnew.add(s);
 			}
 			}
-			GroupByTable.readTable();
+			
 		
-			newTable1 = ProjectTableOperation.projectTable(GroupByTable,arrnew);
-			
-			/*if(orderByList != null){
-			
-				newTable1= ExternalSort.performExternalMergeSort(newTable1, orderByList);
+			newTable1 = ProjectTableOperation.projectTable(GroupByTable,arrnew,true);
+		
+		
+			if(orderByList != null){
+				Table sortedTable= ExternalSort.performExternalMergeSort(newTable1, orderByList);
+				return sortedTable;
 			}
-*/
 		}
 
-		return GroupByTable	;
+		return newTable1;
 	}
 
-public Table LimitOnTable(Table tableToApplyLimitOn, int tupleLimit) throws IOException {
+public static void LimitOnTable(Table tableToApplyLimitOn, int tupleLimit) throws IOException {
 	
 	
 	// this is the limit file object
@@ -1095,19 +1105,27 @@ public Table LimitOnTable(Table tableToApplyLimitOn, int tupleLimit) throws IOEx
 							  tableToApplyLimitOn.tableName + "GroupResultLimitTable.tbl");
 	
 	// this is the Table object corresponding to the file that consists of the limited number of tuples
-	Table limitTable = new Table(tableToApplyLimitOn.tableName + "GroupResultLimitTable", tableToApplyLimitOn.noOfColumns,
+	/*Table limitTable = new Table(tableToApplyLimitOn.tableName + "GroupResultLimitTable", tableToApplyLimitOn.noOfColumns,
 			 					  limitFile, tableToApplyLimitOn.tableDataDirectoryPath);		
 	
 	FileWriter fwr = new FileWriter(limitTable.tableFilePath, true);
-	BufferedWriter bwr = new BufferedWriter(fwr);
+	BufferedWriter bwr = new BufferedWriter(fwr);*/
 	
-	for(int i = 0 ; i < tupleLimit ; ++i){
-		bwr.write(limitTable.returnTuple() + "\n");
+	/*for(int i = 0 ; i < tupleLimit ; ++i){
+		// the following is the string that we need to write
+		String writeString = limitTable.returnTuple();
+		if(writeString.charAt(writeString.length() - 1) == '|')
+			bwr.write(writeString + "\n");
+		else
+			bwr.write(writeString + "|\n");
+	}*/
+	for(int i=0;i<tupleLimit;i++){
+		System.out.println(tableToApplyLimitOn.returnTuple());
 	}
 	
-	bwr.close();
+	//bwr.close();
 	
-	return limitTable;
+	//return limitTable;
 		
 	}
 
