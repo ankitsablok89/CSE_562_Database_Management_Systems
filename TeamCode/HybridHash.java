@@ -76,6 +76,13 @@ public class HybridHash {
 					}
 				}
 				
+				// as we start probing the data in the HashMap to evaluate the hash join, we take a StringBuilder object to speedup data writing to the disk
+				StringBuilder sb = new StringBuilder("");
+				// this variable is used to decide how many strings we write to the disk at a time
+				int count = 0;
+				// allocate a new BufferedWriter object to write to the joinedTable file
+				BufferedWriter bwr = new BufferedWriter(new FileWriter(joinedTable.tableFilePath, true));
+				
 				// form the join by reading table1 tuple by tuple and probing the HashMap that corresponds to Table2
 				while((tupleString = t1.returnTuple()) != null){
 					// this string array stores different components of a tuple
@@ -83,21 +90,45 @@ public class HybridHash {
 					
 					// now probe the hash table to form the join
 					if(hashJoinTable.containsKey(tupleComponents[joiningAttributeIndexTable1])){
-						// allocate a new BufferedWriter object to write to the joinedTable file
-						BufferedWriter bwr = new BufferedWriter(new FileWriter(joinedTable.tableFilePath, true));
 						// get the list of strings to join the tuple with
 						ArrayList<String> joiningTuples = hashJoinTable.get(tupleComponents[joiningAttributeIndexTable1]);
 						// perform the join operation
 						for(String joinString : joiningTuples){
+							// increment the count because you have found a new string to join and write to the disk
+							++count;
+							
 							// this is the code that is implemented for pipe separation
-							if(tupleString.charAt(tupleString.length() - 1) == '|')
-								bwr.write(tupleString + joinString + "\n");
-							else
-								bwr.write(tupleString + "|" + joinString + "\n");
+							if(tupleString.charAt(tupleString.length() - 1) == '|'){
+								//bwr.write(tupleString + joinString + "\n");
+								if(count == 100000000){
+									sb.append(tupleString + joinString + "\n");
+									bwr.write(sb.toString());
+									count = 0;
+									sb = new StringBuilder("");
+								}else{
+									sb.append(tupleString + joinString + "\n");
+								}
+							}
+							else{
+								//bwr.write(tupleString + "|" + joinString + "\n");
+								if(count == 100000000){
+									sb.append(tupleString + "|" + joinString + "\n");
+									bwr.write(sb.toString());
+									count = 0;
+									sb = new StringBuilder("");
+								}else{
+									sb.append(tupleString + "|" + joinString + "\n");
+								}
+							}
 						}
-						bwr.close();
+						
 					}
 				}
+				
+				count = 0;
+				bwr.write(sb.toString());
+				sb = new StringBuilder("");
+				bwr.close();
 				
 			} else{
 				
@@ -116,6 +147,13 @@ public class HybridHash {
 					}
 				}
 				
+				// as we start probing the data in the HashMap to evaluate the hash join, we take a StringBuilder object to speedup data writing to the disk
+				StringBuilder sb = new StringBuilder("");
+				// this variable is used to decide how many strings we write to the disk at a time
+				int count = 0;
+				// allocate a new BufferedWriter object to write to the joinedTable file
+				BufferedWriter bwr = new BufferedWriter(new FileWriter(joinedTable.tableFilePath, true));
+				
 				// form the join by reading table2 tuple by tuple and probing the HashMap that corresponds to Table1
 				while((tupleString = t2.returnTuple()) != null){
 					// this string array stores different components of a tuple
@@ -123,29 +161,53 @@ public class HybridHash {
 					
 					// now probe the hash table to form the join
 					if(hashJoinTable.containsKey(tupleComponents[joiningAttributeIndexTable2])){
-						// allocate a new BufferedWriter object to write to the joinedTable file
-						BufferedWriter bwr = new BufferedWriter(new FileWriter(joinedTable.tableFilePath, true));
+						
 						// get the list of strings to join the tuple with
 						ArrayList<String> joiningTuples = hashJoinTable.get(tupleComponents[joiningAttributeIndexTable2]);
 						// perform the join operation
 						for(String joinString : joiningTuples){
+							// increment the count because you have found a new string to join and write to the disk
+							++count;
+
 							// this is the code for implementing the pipe operation
-							if(joinString.charAt(joinString.length() - 1) == '|')
-								bwr.write(joinString + tupleString + "\n");
-							else
-								bwr.write(joinString + "|" + tupleString + "\n");
+							if(joinString.charAt(joinString.length() - 1) == '|'){
+								// bwr.write(joinString + tupleString + "\n");
+								if(count == 100000000){
+									sb.append(joinString + tupleString + "\n");
+									bwr.write(sb.toString());
+									count = 0;
+									sb = new StringBuilder("");
+								}else{
+									sb.append(joinString + tupleString + "\n");
+								}
+							}
+							else{
+								// bwr.write(joinString + "|" + tupleString + "\n");
+								if(count == 100000000){
+									sb.append(joinString + "|" + tupleString + "\n");
+									bwr.write(sb.toString());
+									count = 0;
+									sb = new StringBuilder("");
+								}else{
+									sb.append(joinString + "|" + tupleString + "\n");
+								}
+							}
 						}
-						bwr.close();
 					}
 				}
+				
+				count = 0;
+				bwr.write(sb.toString());
+				sb = new StringBuilder("");
+				bwr.close();
 			}
 		} else{
 			// as the swap parameter is present we divide the data of two tables in buckets which will be placed in the swap directory
 			
 			// this variable stores the total number of buckets in which the data of the tables will be divided
-			int nBuckets = 103;
+			int nBuckets = 35;
 			
-			// divide the data of table t1 into 31 buckets based on java's HashCode function
+			// divide the data of table t1 into 50 buckets based on java's HashCode function
 			// this is the ArrayList of file objects corresponding to table1's buckets
 			ArrayList<File> table1BucketsFileObjects = new ArrayList<File>();
 			for(int i = 0 ; i < nBuckets ; ++i){
@@ -155,6 +217,11 @@ public class HybridHash {
 					newBucket.createNewFile();
 			}
 			
+			// this is the array list of string builder objects for each of table1's buckets
+			ArrayList<StringBuilder> table1StringBuilders = new ArrayList<StringBuilder>();
+			for(int i = 0 ; i < nBuckets ; ++i)
+				table1StringBuilders.add(new StringBuilder(""));
+			
 			String tuple1;
 			while((tuple1 = t1.returnTuple()) != null){
 				String[] splitTuple = tuple1.split("\\|");
@@ -162,13 +229,27 @@ public class HybridHash {
 				int tupleHashCode = splitTuple[joiningAttributeIndexTable1].hashCode();
 				// if the hash code is negative then multiply it by -1
 				if(tupleHashCode < 0)
-					tupleHashCode = tupleHashCode*-1;
+					tupleHashCode = tupleHashCode * -1;
 				// this is the bucket number to which we need to place the tuple
 				int bucketNumber = (tupleHashCode)%nBuckets;
 				File bucketPointer = table1BucketsFileObjects.get(bucketNumber);
 				FileWriter fwr = new FileWriter(bucketPointer, true);
 				BufferedWriter bwr = new BufferedWriter(fwr);
-				bwr.write(tuple1 + "\n");
+				if(table1StringBuilders.get(bucketNumber).toString().length() >= 100000000){
+					bwr.write(table1StringBuilders.get(bucketNumber).append(tuple1 + "\n").toString());
+					table1StringBuilders.set(bucketNumber, new StringBuilder(""));
+				}
+				else
+					table1StringBuilders.get(bucketNumber).append(tuple1 + "\n");
+				
+				bwr.close();
+			}
+			
+			for(int i = 0 ; i < table1StringBuilders.size() ; ++i){
+				File bucketPointer = table1BucketsFileObjects.get(i);
+				FileWriter fwr = new FileWriter(bucketPointer, true);
+				BufferedWriter bwr = new BufferedWriter(fwr);
+				bwr.write(table1StringBuilders.get(i).toString());
 				bwr.close();
 			}
 			
@@ -182,6 +263,11 @@ public class HybridHash {
 					newBucket.createNewFile();
 			}
 			
+			// this is the array list of string builder objects for each of table1's buckets
+			ArrayList<StringBuilder> table2StringBuilders = new ArrayList<StringBuilder>();
+			for(int i = 0 ; i < nBuckets ; ++i)
+				table2StringBuilders.add(new StringBuilder(""));
+			
 			String tuple2;
 			while((tuple2 = t2.returnTuple()) != null){
 				String[] splitTuple = tuple2.split("\\|");
@@ -194,7 +280,21 @@ public class HybridHash {
 				File bucketPointer = table2BucketsFileObjects.get(bucketNumber);
 				FileWriter fwr = new FileWriter(bucketPointer, true);
 				BufferedWriter bwr = new BufferedWriter(fwr);
-				bwr.write(tuple2 + "\n");
+				if(table2StringBuilders.get(bucketNumber).toString().length() >= 100000000){
+					bwr.write(table2StringBuilders.get(bucketNumber).append(tuple2 + "\n").toString());
+					table2StringBuilders.set(bucketNumber, new StringBuilder(""));
+				}
+				else
+					table2StringBuilders.get(bucketNumber).append(tuple2 + "\n");
+				
+				bwr.close();
+			}
+			
+			for(int i = 0 ; i < table2StringBuilders.size() ; ++i){
+				File bucketPointer = table2BucketsFileObjects.get(i);
+				FileWriter fwr = new FileWriter(bucketPointer, true);
+				BufferedWriter bwr = new BufferedWriter(fwr);
+				bwr.write(table2StringBuilders.get(i).toString());
 				bwr.close();
 			}
 			

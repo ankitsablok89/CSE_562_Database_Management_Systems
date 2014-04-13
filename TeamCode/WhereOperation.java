@@ -1165,16 +1165,36 @@ public class WhereOperation {
 
 		String tuple;
 		int tupleNo = 0;
-
+		
+		// this string builder object is used to speed up the processing of writing in files
+		StringBuilder sb = new StringBuilder("");
+		int count = 0;
+		
 		while ((tuple = tableToAppySelectionOn.returnTuple()) != null) {
+			
 			tupleNo++;
+			// this is the string that I need to write down
 			if (listOfIndices.contains(tupleNo)) {
-				bwr.write(tuple);
+				/*bwr.write(tuple);
 				bwr.write("\n");
-				bwr.flush();
+				bwr.flush();*/
+				++count;
+				// this is the condition when we write in the file, this just corresponds to one I/O
+				if(count == 100000000){
+					sb.append(tuple + "\n");
+					bwr.write(sb.toString());
+					count = 0;
+					sb = new StringBuilder("");
+				}else{
+					sb.append(tuple + "\n");
+				}
 			}
 		}
 		
+		// if the above condition is not satisfied, then just write the string builder to the file
+		count = 0;
+		bwr.write(sb.toString());
+		sb = null;
 		bwr.close();
 	}
 

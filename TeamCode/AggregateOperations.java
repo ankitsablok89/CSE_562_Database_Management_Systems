@@ -1083,12 +1083,11 @@ public class AggregateOperations
 				arrnew.add(s);
 			}
 			}
-			
-		
+			//System.out.println("Group tabel"+GroupByTable.columnIndexMap);
 			newTable1 = ProjectTableOperation.projectTable(GroupByTable,arrnew,true);
-		
-		
+				System.out.println("New tabel"+newTable1.columnIndexMap);
 			if(orderByList != null){
+				System.out.println(orderByList);
 				Table sortedTable= ExternalSort.performExternalMergeSort(newTable1, orderByList);
 				return sortedTable;
 			}

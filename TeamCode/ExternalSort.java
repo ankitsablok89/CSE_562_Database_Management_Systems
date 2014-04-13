@@ -22,7 +22,7 @@ public class ExternalSort {
 		//System.out.println(table.tableFilePath);
 
 		//System.out.println(table.tableDataDirectoryPath);
-
+		Collections.reverse(orderByList);
 		ArrayList<Table> chunkList = sorting(table,orderByList,orderByList.size());
 		return merging(chunkList, orderByList, orderByList.size());
 		//System.out.println(chunkList.size());
@@ -467,7 +467,7 @@ class MergingComparator implements Comparator<String>{
 		this.table = table;
 		this.orderByList = orderByList;
 		this.size = size;	
-		
+		orderArrCount = orderByList.size()-1;
 		populateOrderingAttributes();
 		moveToNextOrdering();
 		
@@ -476,11 +476,11 @@ class MergingComparator implements Comparator<String>{
 	// method returns true if next order clause is available
 	private boolean moveToNextOrdering(){
 		
-		if(orderArrCount < orderByList.size()){
+		if(orderArrCount >=0){
 			index =  indexArr[orderArrCount];
 			order = orderArr[orderArrCount];
 			type = typeArr[orderArrCount];
-			orderArrCount++;
+			orderArrCount--;
 			return true;
 		}
 		else{

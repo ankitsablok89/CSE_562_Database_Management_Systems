@@ -11,7 +11,6 @@ import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.parser.ParseException;
 import net.sf.jsqlparser.statement.select.FromItem;
-import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectBody;
 import net.sf.jsqlparser.statement.select.PlainSelect;
@@ -240,7 +239,7 @@ public class SelectionOperation {
 						if (arrayList.size() > 0 && mapOfTables.get(iterativeIndex) != null) {
 							// call the HashJoin and evaluate the new table
 							//System.out.println("In here");
-							System.out.println("table to join :" + arrayList.get(0) + " : " + arrayList.get(1));
+							//System.out.println("table to join :" + arrayList.get(0) + " : " + arrayList.get(1));
 							resultTable = HybridHash.evaluateJoin(t1, t2,arrayList.get(0), arrayList.get(1),arrayList.get(2), swapDirectory);
 							mapOfTables.put(iterativeIndex, null);
 							mapOfTables.put(index, resultTable);
